@@ -9,6 +9,7 @@ class db_banzhuan:
         self.currency_pair = currency_pair
         self.path_prefix = path_prefix
         path = self.path_prefix + self.currency_pair + '.db'
+        print(path)
         self.conn = sqlite3.connect(path)
         #self.conn = sqlite3.connect(':memory:')
         self.cu = self.conn.cursor()

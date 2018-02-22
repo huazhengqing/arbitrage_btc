@@ -4,6 +4,7 @@ import os
 import sys
 import asyncio
 import ccxt.async as ccxt
+#import cfscrape
 
 sys.path.append("..")
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
@@ -13,20 +14,15 @@ import util.db_banzhuan as db_banzhuan
 import bz_conf
 
 
-db_path_prefix = os.getcwd() + '/db/'
-#db_path_prefix = '../db/'
-
-db_file_name = 'btc_usd'
 currency_pair = 'BTC/USD'
 
 
-
 list_exchanges = []
-db = db_banzhuan(db_file_name, db_path_prefix)
+db = db_banzhuan(bz_conf.db_filename_btc_usd, bz_conf.db_dir)
 for k, v in  bz_conf.exchanges_btc_usd.items():
     if v == False:
         pass
-    db.create_table_usd(k)
+    db.create_table_exchange(k)
     if k == ccxt.bitfinex.__name__:
         list_exchanges.append(bz_conf.bitfinex)
     if k == ccxt.okcoinusd.__name__:

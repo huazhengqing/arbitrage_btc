@@ -6,21 +6,28 @@ import asyncio
 import ccxt.async as ccxt
 
 
+db_dir = os.getcwd() + '/db/'
+#db_dir = './db/'
+
+db_filename_btc_usd = 'btc_usd'
+db_filename_eth_btc = 'eth_btc'
+
+
+
 exchanges_btc_usd = {
-    'bitfinex': True,
-    'okcoinusd': True,
+    'bitfinex': True,       # 可空, 门槛 $10000
+    'okcoinusd': True,         # 可空, 
     'bitstamp': True,
     'gemini': True,
-    'kraken': True,
+    'kraken': True,         # 可空, 
     'exmo': True,
     'quadrigacx': True,
     'gdax': True,
-    'poloniex': False,
-    'CEX.IO': False,
-    'WEX': False,
-    'itBit': False,
-    'Bittrex': False,
-    'Binance': False,
+    'poloniex': False,         # 可空, 
+    'cex': False,
+    'wex': False,
+    'itbit': False,
+    'bittrex': False,
 }
 
 exchanges_btc_cny = {
@@ -157,6 +164,7 @@ mixcoins = ccxt.mixcoins()
 nova = ccxt.nova()
 okcoincny = ccxt.okcoincny()
 okcoinusd = ccxt.okcoinusd()
+okex = ccxt.okex()
 paymium = ccxt.paymium()
 poloniex = ccxt.poloniex()
 qryptos = ccxt.qryptos()

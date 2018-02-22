@@ -13,27 +13,22 @@ import util.db_banzhuan as db_banzhuan
 import bz_conf
 
 
-db_path_prefix = os.getcwd() + '/db/'
-#db_path_prefix = '../db/'
-
-
-db_file_name = 'eth_btc'
 currency_pair = 'ETH/BTC'
 
 
 
 list_exchanges = []
-db = db_banzhuan(db_file_name, db_path_prefix)
+db = db_banzhuan(bz_conf.db_filename_eth_btc, bz_conf.db_dir)
 for k, v in  bz_conf.exchanges_eth_btc.items():
     if v == False:
         pass
-    db.create_table_usd(k)
+    db.create_table_exchange(k)
     if k == ccxt.bitfinex.__name__:
         list_exchanges.append(bz_conf.bitfinex)
     if k == ccxt.okcoinusd.__name__:
         list_exchanges.append(bz_conf.okcoinusd)
     if k == ccxt.okex.__name__:
-        list_exchanges.append(bz_conf.okex)
+        list_exchanges.append(bz_conf.okcoinusd)
     if k == ccxt.bitstamp.__name__:
         list_exchanges.append(bz_conf.bitstamp)
     if k == ccxt.gemini.__name__:

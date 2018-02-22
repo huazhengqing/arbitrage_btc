@@ -2,6 +2,7 @@
 
 import sqlite3
 import os
+import time
 
 
 class db_banzhuan:
@@ -21,12 +22,12 @@ class db_banzhuan:
         else:
             print('the [{}] is empty or equal None!'.format(sql))
 
-    def create_table_usd(self, exchange):
-        sql = "CREATE TABLE IF NOT EXISTS `" + exchange + "` (Datetime DATETIME NOT NULL, bid DECIMAL(8, 2), ask DECIMAL(8, 2));"
+    def create_table_exchange(self, exchange):
+        sql = "CREATE TABLE IF NOT EXISTS `" + exchange + "` (Datetime DATETIME NOT NULL, bid DECIMAL(20, 12), ask DECIMAL(20, 12));"
         return self.create_table(sql)
 
-    def create_table_btc(self, exchange):
-        sql = "CREATE TABLE IF NOT EXISTS `" + exchange + "` (Datetime DATETIME NOT NULL, bid DECIMAL(20, 12), ask DECIMAL(20, 12));"
+    def create_table_spread(self, exchange1, exchange2):
+        sql = "CREATE TABLE IF NOT EXISTS `" + exchange1 + "_" + exchange2 + "` (Datetime DATETIME NOT NULL, exchange1_bid_exchange2_ask DECIMAL(20, 12), exchange2_bid_exchange1_ask DECIMAL(20, 12));"
         return self.create_table(sql)
 
     def close_all(self):
@@ -55,26 +56,17 @@ class db_banzhuan:
         data = [(datetime, bid, ask)]
         self.save(save_sql, data)
 
-    def fetchall(self, sql):
-        if sql is not None and sql != '':
-            self.cu.execute(sql)
-            r = self.cu.fetchall()
-            if len(r) > 0:
-                for e in range(len(r)):
-                    print(r[e])
-        else:
-            print('the [{}] is empty or equal None!'.format(sql)) 
+    def fetch(self, exchange, sql_condition):
+        sql = 'select * from ' + exchange + ' where  Datetime >= ' + sql_condition
+        self.cu.execute(sql)
+        rows = self.cu.fetchall() 
+        return rows
 
-    def fetchone(self, sql, data):
-        if sql is not None and sql != '':
-            if data is not None:
-                d = (data,) 
-                self.cu.execute(sql, d)
-                r = self.cu.fetchall()
-                if len(r) > 0:
-                    for e in range(len(r)):
-                        print(r[e])
-            else:
-                print('the [{}] equal None!'.format(data))
-        else:
-            print('the [{}] is empty or equal None!'.format(sql))
+    def fetch_one(self, exchange, sql_condition):
+        sql = 'select * from ' + exchange + ' where  Datetime == ' + sql_condition
+        self.cu.execute(sql)
+        rows = self.cu.fetchall()
+        return rows
+
+            
+

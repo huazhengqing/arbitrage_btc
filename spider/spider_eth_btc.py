@@ -4,52 +4,42 @@ import os
 import sys
 import asyncio
 import ccxt.async as ccxt
-
+#import cfscrape
 sys.path.append("..")
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 sys.path.append(os.getcwd())
 sys.path.append(os.path.dirname(os.getcwd()))
-import util.db_banzhuan as db_banzhuan
+import util
 import bz_conf
 
 
-currency_pair = 'ETH/BTC'
+symbol = 'ETH/BTC'
+exchanges = [
+    'bitfinex',     # 可空, 门槛 $10000
+    'okcoinusd',     # 可空, 
+    'bitstamp', 
+    'gemini', 
+    'kraken',       # 可空, 
+    'exmo', 
+    'quadrigacx', 
+    'gdax', 
+    #'poloniex'    # 可空
+    #'cex',
+    #'wex',
+    #'itbit',
+    #'bittrex',
+    ]
 
 
 
-list_exchanges = []
-db = db_banzhuan(bz_conf.db_filename_eth_btc, bz_conf.db_dir)
-for k, v in  bz_conf.exchanges_eth_btc.items():
-    if v == False:
-        pass
-    db.create_table_exchange(k)
-    if k == ccxt.bitfinex.__name__:
-        list_exchanges.append(bz_conf.bitfinex)
-    if k == ccxt.okcoinusd.__name__:
-        list_exchanges.append(bz_conf.okcoinusd)
-    if k == ccxt.okex.__name__:
-        list_exchanges.append(bz_conf.okcoinusd)
-    if k == ccxt.bitstamp.__name__:
-        list_exchanges.append(bz_conf.bitstamp)
-    if k == ccxt.gemini.__name__:
-        list_exchanges.append(bz_conf.gemini)
-    if k == ccxt.kraken.__name__:
-        list_exchanges.append(bz_conf.kraken)
-    if k == ccxt.exmo.__name__:
-        list_exchanges.append(bz_conf.exmo)
-    if k == ccxt.quadrigacx.__name__:
-        list_exchanges.append(bz_conf.quadrigacx)
-    if k == ccxt.gdax.__name__:
-        list_exchanges.append(bz_conf.gdax)
-    if k == ccxt.huobipro.__name__:
-        list_exchanges.append(bz_conf.huobipro)
-
+db = util.db_banzhuan(util.symbol_2_string(symbol), bz_conf.db_dir)
+list_exchanges = util.init_spider(db, exchanges)
 
 
 async def get_ticker(exchange):
     while True:
         try:
-            ticker = await exchange.fetch_ticker(currency_pair)
+            ticker = await exchange.fetch_ticker(symbol)
             db.add_bid_ask(exchange.id, ticker['timestamp'], ticker['bid'], ticker['ask'])
             print(exchange.id, ticker['timestamp'], ticker['bid'], ticker['ask'])
         except ccxt.RequestTimeout as e:
@@ -67,8 +57,6 @@ async def get_ticker(exchange):
             await asyncio.sleep(exchange.rateLimit / 1000)
         except ccxt.NetworkError as e:
             print('NetworkError=', type(e).__name__, e.args)
-
-
 
 
 

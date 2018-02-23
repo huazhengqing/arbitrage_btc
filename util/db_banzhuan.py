@@ -6,10 +6,10 @@ import time
 
 
 class db_banzhuan:
-    def __init__(self, currency_pair = "btc_usd", path_prefix = './'):
-        self.currency_pair = currency_pair
-        self.path_prefix = path_prefix
-        path = self.path_prefix + self.currency_pair + '.db'
+    def __init__(self, symbol_str = "BTC_USD", db_dir = './'):
+        self.symbol_str = symbol_str
+        self.db_dir = db_dir
+        path = self.db_dir + self.symbol_str + '.db'
         print(path)
         self.conn = sqlite3.connect(path)
         #self.conn = sqlite3.connect(':memory:')

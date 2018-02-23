@@ -5,53 +5,59 @@ import sys
 import asyncio
 import ccxt.async as ccxt
 #import cfscrape
-
 sys.path.append("..")
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 sys.path.append(os.getcwd())
 sys.path.append(os.path.dirname(os.getcwd()))
-import util.db_banzhuan as db_banzhuan
+import util
 import bz_conf
 
 
-currency_pair = 'BTC/USD'
+symbol = 'BTC/USD'
+exchanges = [
+    'bitfinex',     # 可空, 门槛 $10000
+    'okcoinusd',     # 可空, 
+    'bitstamp', 
+    'gemini', 
+    'kraken',       # 可空, 
+    'exmo', 
+    'quadrigacx', 
+    'gdax', 
+    #'poloniex'    # 可空
+    #'cex',
+    #'wex',
+    #'itbit',
+    #'bittrex',
+    ]
 
 
-list_exchanges = []
-db = db_banzhuan(bz_conf.db_filename_btc_usd, bz_conf.db_dir)
-for k, v in  bz_conf.exchanges_btc_usd.items():
-    if v == False:
-        pass
-    db.create_table_exchange(k)
-    if k == ccxt.bitfinex.__name__:
-        list_exchanges.append(bz_conf.bitfinex)
-    if k == ccxt.okcoinusd.__name__:
-        list_exchanges.append(bz_conf.okcoinusd)
-    if k == ccxt.okex.__name__:
-        list_exchanges.append(bz_conf.okex)
-    if k == ccxt.bitstamp.__name__:
-        list_exchanges.append(bz_conf.bitstamp)
-    if k == ccxt.gemini.__name__:
-        list_exchanges.append(bz_conf.gemini)
-    if k == ccxt.kraken.__name__:
-        list_exchanges.append(bz_conf.kraken)
-    if k == ccxt.exmo.__name__:
-        list_exchanges.append(bz_conf.exmo)
-    if k == ccxt.quadrigacx.__name__:
-        list_exchanges.append(bz_conf.quadrigacx)
-    if k == ccxt.gdax.__name__:
-        list_exchanges.append(bz_conf.gdax)
-    if k == ccxt.huobipro.__name__:
-        list_exchanges.append(bz_conf.huobipro)
 
+db = util.db_banzhuan(util.symbol_2_string(symbol), bz_conf.db_dir)
+list_exchanges = util.init_spider(db, exchanges)
 
 
 async def get_ticker(exchange):
     while True:
         try:
-            ticker = await exchange.fetch_ticker(currency_pair)
+            s = await util.verify_symbol(exchange, symbol)
+
+            ticker = await exchange.fetch_ticker(s)
             db.add_bid_ask(exchange.id, ticker['timestamp'], ticker['bid'], ticker['ask'])
             print(exchange.id, ticker['timestamp'], ticker['bid'], ticker['ask'])
+
+
+            '''
+            # 可以取到价格和数量，没测过哪个速度快
+            order_book = await exchange.fetch_order_book(s, 1)      # 取深度信息，只取1层
+            dt = order_book['timestamp']
+            bid1 = order_book['bids'][0][0]
+            bid1_quantity = order_book['bids'][0][1]
+            ask1 = order_book['asks'][0][0]
+            ask1_quantity = order_book['asks'][0][1]
+            db.add_bid_ask(exchange.id, dt, bid1, ask1)
+            print(exchange.id, dt, bid1, ask1)
+            '''
+            
         except ccxt.RequestTimeout as e:
             print('RequestTimeout=', type(e).__name__, e.args)
         except ccxt.DDoSProtection as e:

@@ -53,7 +53,8 @@ class db_banzhuan:
 
     def add_bid_ask(self, exchange, datetime, bid, ask):
         save_sql = 'INSERT INTO ' + exchange + ' values (?, ?, ?)'
-        data = [(datetime, bid, ask)]
+        dt = int(float(datetime))
+        data = [(dt, bid, ask)]
         self.save(save_sql, data)
 
     def fetch(self, exchange, sql_condition):

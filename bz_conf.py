@@ -6,8 +6,36 @@ import asyncio
 import ccxt.async as ccxt
 
 
-db_dir = os.getcwd() + '/db/'
-#db_dir = './db/'
+
+root_dir = os.path.dirname(os.path.abspath(__file__))
+db_dir = root_dir + '/db/'
+
+
+
+exchanges = [
+    'binance', 
+    'bitfinex',     # 可空, 门槛 $10000
+    'bitfinex2',     # 可空, 门槛 $10000
+    'bitstamp', 
+    'bitstamp1', 
+    'bittrex',
+    'cex',
+    'exmo', 
+    'gdax', 
+    'gemini', 
+    'huobi',     # huobi No market symbol BTC/USDT
+    'huobicny',     # huobicny No market symbol BTC/USDT
+    'huobipro', 
+    'itbit',
+    'kraken',       # 可空, 
+    #'okcoincny',     # okcoincny No market symbol BTC/USDT
+    'okcoinusd',     # 可空, 
+    'okex',     # 可空, 
+    'poloniex'    # 可空
+    'quadrigacx', 
+    'wex',
+    ]
+
 
 
 acx = ccxt.acx({
@@ -143,26 +171,86 @@ cex = ccxt.cex({
     'enableRateLimit': True,
     'rateLimit': 10000,
 })
-chbtc = ccxt.chbtc()
-chilebit = ccxt.chilebit()
-cobinhood = ccxt.cobinhood()
-coincheck = ccxt.coincheck()
-coinexchange = ccxt.coinexchange()
-coinfloor = ccxt.coinfloor()
-coingi = ccxt.coingi()
-coinmarketcap = ccxt.coinmarketcap()
-coinmate = ccxt.coinmate()
-coinsecure = ccxt.coinsecure()
-coinspot = ccxt.coinspot()
-cryptopia = ccxt.cryptopia()
-dsx = ccxt.dsx()
-exmo = ccxt.exmo()
-flowbtc = ccxt.flowbtc()
-foxbit = ccxt.foxbit()
-fybse = ccxt.fybse()
-fybsg = ccxt.fybsg()
-gatecoin = ccxt.gatecoin()
-gateio = ccxt.gateio()
+chbtc = ccxt.chbtc({
+    'enableRateLimit': True,
+    'rateLimit': 10000,
+})
+chilebit = ccxt.chilebit({
+    'enableRateLimit': True,
+    'rateLimit': 10000,
+})
+cobinhood = ccxt.cobinhood({
+    'enableRateLimit': True,
+    'rateLimit': 10000,
+})
+coincheck = ccxt.coincheck({
+    'enableRateLimit': True,
+    'rateLimit': 10000,
+})
+coinexchange = ccxt.coinexchange({
+    'enableRateLimit': True,
+    'rateLimit': 10000,
+})
+coinfloor = ccxt.coinfloor({
+    'enableRateLimit': True,
+    'rateLimit': 10000,
+})
+coingi = ccxt.coingi({
+    'enableRateLimit': True,
+    'rateLimit': 10000,
+})
+coinmarketcap = ccxt.coinmarketcap({
+    'enableRateLimit': True,
+    'rateLimit': 10000,
+})
+coinmate = ccxt.coinmate({
+    'enableRateLimit': True,
+    'rateLimit': 10000,
+})
+coinsecure = ccxt.coinsecure({
+    'enableRateLimit': True,
+    'rateLimit': 10000,
+})
+coinspot = ccxt.coinspot({
+    'enableRateLimit': True,
+    'rateLimit': 10000,
+})
+cryptopia = ccxt.cryptopia({
+    'enableRateLimit': True,
+    'rateLimit': 10000,
+})
+dsx = ccxt.dsx({
+    'enableRateLimit': True,
+    'rateLimit': 10000,
+})
+exmo = ccxt.exmo({
+    'enableRateLimit': True,
+    'rateLimit': 10000,
+})
+flowbtc = ccxt.flowbtc({
+    'enableRateLimit': True,
+    'rateLimit': 10000,
+})
+foxbit = ccxt.foxbit({
+    'enableRateLimit': True,
+    'rateLimit': 10000,
+})
+fybse = ccxt.fybse({
+    'enableRateLimit': True,
+    'rateLimit': 10000,
+})
+fybsg = ccxt.fybsg({
+    'enableRateLimit': True,
+    'rateLimit': 10000,
+})
+gatecoin = ccxt.gatecoin({
+    'enableRateLimit': True,
+    'rateLimit': 10000,
+})
+gateio = ccxt.gateio({
+    'enableRateLimit': True,
+    'rateLimit': 10000,
+})
 gdax = ccxt.gdax({
     'enableRateLimit': True,
     'rateLimit': 10000,
@@ -281,17 +369,50 @@ poloniex = ccxt.poloniex({
     'enableRateLimit': True,
     'rateLimit': 10000,
 })
-qryptos = ccxt.qryptos()
-quadrigacx = ccxt.quadrigacx()
-quoinex = ccxt.quoinex()
-southxchange = ccxt.southxchange()
-surbitcoin = ccxt.surbitcoin()
-therock = ccxt.therock()
-tidex = ccxt.tidex()
-urdubit = ccxt.urdubit()
-vaultoro = ccxt.vaultoro()
-vbtc = ccxt.vbtc()
-virwox = ccxt.virwox()
+qryptos = ccxt.qryptos({
+    'enableRateLimit': True,
+    'rateLimit': 10000,
+})
+quadrigacx = ccxt.quadrigacx({
+    'enableRateLimit': True,
+    'rateLimit': 10000,
+})
+quoinex = ccxt.quoinex({
+    'enableRateLimit': True,
+    'rateLimit': 10000,
+})
+southxchange = ccxt.southxchange({
+    'enableRateLimit': True,
+    'rateLimit': 10000,
+})
+surbitcoin = ccxt.surbitcoin({
+    'enableRateLimit': True,
+    'rateLimit': 10000,
+})
+therock = ccxt.therock({
+    'enableRateLimit': True,
+    'rateLimit': 10000,
+})
+tidex = ccxt.tidex({
+    'enableRateLimit': True,
+    'rateLimit': 10000,
+})
+urdubit = ccxt.urdubit({
+    'enableRateLimit': True,
+    'rateLimit': 10000,
+})
+vaultoro = ccxt.vaultoro({
+    'enableRateLimit': True,
+    'rateLimit': 10000,
+})
+vbtc = ccxt.vbtc({
+    'enableRateLimit': True,
+    'rateLimit': 10000,
+})
+virwox = ccxt.virwox({
+    'enableRateLimit': True,
+    'rateLimit': 10000,
+})
 wex = ccxt.wex({
     'enableRateLimit': True,
     'rateLimit': 10000,

@@ -16,7 +16,6 @@ import util
 import bz_conf
 
 
-
 symbol = "ETH/BTC"
 if len(sys.argv) >= 2:
     symbol = sys.argv[1]
@@ -24,14 +23,33 @@ print(symbol)
 
 
 # for test
-exchanges = bz_conf.test_exchange_ids
-
+exchanges = [
+    'binance', 
+    'huobipro', 
+]
 
 '''
-exchanges = bz_conf.exchange_ids
+exchanges = [
+    'binance', 
+    'bitfinex',     # 可空, 门槛 $10000
+    'bitfinex2',     # 可空, 门槛 $10000
+    'bitstamp', 
+    'bitstamp1', 
+    'bittrex',
+    'cex',
+    'exmo', 
+    'gdax', 
+    'gemini', 
+    'huobipro', 
+    'itbit',
+    'kraken',       # 可空, 
+    'okcoinusd',     # 可空, 
+    'okex',     # 可空, 
+    'poloniex'    # 可空
+    'quadrigacx', 
+    'wex',
+    ]
 '''
-
-
 
 
 db = util.db_banzhuan(util.symbol_2_string(symbol), bz_conf.db_dir)

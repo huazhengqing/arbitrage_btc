@@ -9,10 +9,8 @@ import numpy as np
 import util
 
 '''
-币安网 
 交易费率
-0.1% 交易手续费。（扣除收取到的资产）
-若持有BNB，BNB抵扣手续费功能会默认开启。交易费用直接扣除BNB, 交易任何币种均享有50%折扣（暂行），即0.05%。详见《BNB抵扣手续费说明》
+币安网   0.1% 交易手续费。（扣除收取到的资产）
 '''
 
 
@@ -71,7 +69,7 @@ class exchange_data():
         if self.ex.id == 'binance':
             self.long_fee = 0.0010    # %
             self.short_fee = 0.0010    # %
-            self.support_short = True
+            self.support_short = False
 
 
         

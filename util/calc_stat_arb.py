@@ -200,8 +200,8 @@ class calc_stat_arb():
     # 有交易所，只支持 limit order 
     # 不支持, 失败, 未全部成交   ????????????
     # 异常，网络问题，报警   ?????????????
-    def do_order_spread1(self, todo_qty):
-        exc1_order_ret = self.ex1.ex.create_order(self.ex1.symbol, 'market', 'sell', todo_qty, None, {'leverage': 1})
+    async def do_order_spread1(self, todo_qty):
+        exc1_order_ret = await self.ex1.ex.create_order(self.ex1.symbol, 'market', 'sell', todo_qty, None, {'leverage': 1})
         # 订单没有成交全部，剩下的订单取消
         if exc1_order_ret['remaining'] > 0:
             self.ex1.ex.cancel_order(exc1_order_ret['id'])
@@ -209,9 +209,9 @@ class calc_stat_arb():
         if ok_qty <= 0:    # 订单完全没有成交，等待下一次机会
             return
         # 第1交易所已下单成功，第2交易所下单
-        exc2_order_ret = self.ex2.ex.create_order(self.ex2.symbol, 'market', 'buy', ok_qty, None, {'leverage': 1})
+        exc2_order_ret = await self.ex2.ex.create_order(self.ex2.symbol, 'market', 'buy', ok_qty, None, {'leverage': 1})
         while exc2_order_ret['remaining'] > 0:
-            exc2_order_ret = self.ex2.ex.create_order(self.ex2.symbol, 'market', 'buy', exc2_order_ret['remaining'], None, {'leverage': 1})
+            exc2_order_ret = await self.ex2.ex.create_order(self.ex2.symbol, 'market', 'buy', exc2_order_ret['remaining'], None, {'leverage': 1})
 
         if self.current_position_direction == 0 or self.current_position_direction == 1:
             self.spread1_pos_qty += ok_qty
@@ -220,8 +220,8 @@ class calc_stat_arb():
 
 
 
-    def do_order_spread2(self, todo_qty):
-        exc2_order_ret = self.ex2.ex.create_order(self.ex2.symbol, 'market', 'sell', todo_qty, None, {'leverage': 1})
+    async def do_order_spread2(self, todo_qty):
+        exc2_order_ret = await self.ex2.ex.create_order(self.ex2.symbol, 'market', 'sell', todo_qty, None, {'leverage': 1})
         # 订单没有成交全部，剩下的订单取消
         if exc2_order_ret['remaining'] > 0:
             self.ex2.ex.cancel_order(exc2_order_ret['id'])
@@ -229,9 +229,9 @@ class calc_stat_arb():
         if ok_qty <= 0:    # 订单完全没有成交，等待下一次机会
             return
         # 第2交易所已下单成功，第1交易所下单
-        exc1_order_ret = self.ex1.ex.create_order(self.ex1.symbol, 'market', 'buy', ok_qty, None, {'leverage': 1})
+        exc1_order_ret = await self.ex1.ex.create_order(self.ex1.symbol, 'market', 'buy', ok_qty, None, {'leverage': 1})
         while exc1_order_ret['remaining'] > 0:
-            exc1_order_ret = self.ex1.ex.create_order(self.ex1.symbol, 'market', 'buy', exc1_order_ret['remaining'], None, {'leverage': 1})
+            exc1_order_ret = await self.ex1.ex.create_order(self.ex1.symbol, 'market', 'buy', exc1_order_ret['remaining'], None, {'leverage': 1})
 
         if self.current_position_direction == 0 or self.current_position_direction == 2:
             self.spread2_pos_qty += ok_qty
@@ -239,10 +239,10 @@ class calc_stat_arb():
             self.spread1_pos_qty -= ok_qty
 
 
-    def do_it(self):
+    async def do_it(self):
         self.fetch_history_data_from_db()
-        self.load_markets()
-        self.fetch_balance()
+        await self.load_markets()
+        await self.fetch_balance()
         self.init_spread_qty()
         while True:
             cur_t = int(time.time())
@@ -252,7 +252,7 @@ class calc_stat_arb():
             self.check_data_timestamp = cur_t
 
             # 取订单深度信息
-            self.fetch_order_book()
+            await self.fetch_order_book()
 
             # 数据不足，不计算, 等待足够的数据
             if len(self.spread1List) < self.sma_window_size or len(self.spread2List) < self.sma_window_size:
@@ -317,8 +317,8 @@ class calc_stat_arb():
                 if todo_qty < self.ex1.limits_amount_min or todo_qty < self.ex2.limits_amount_min:
                     continue
                     
-                self.do_order_spread1(todo_qty)
-                self.fetch_balance()
+                await self.do_order_spread1(todo_qty)
+                await self.fetch_balance()
 
             elif position_direction == 2:
                 if self.current_position_direction == 0:  # 当前没有持仓
@@ -354,8 +354,8 @@ class calc_stat_arb():
                 if todo_qty < self.ex1.limits_amount_min or todo_qty < self.ex2.limits_amount_min:
                     continue
 
-                self.do_order_spread2(todo_qty)
-                self.fetch_balance()
+                await self.do_order_spread2(todo_qty)
+                await self.fetch_balance()
 
             if self.spread1_pos_qty > 0:
                 self.current_position_direction = 1

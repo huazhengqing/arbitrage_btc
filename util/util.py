@@ -4,6 +4,11 @@ import os
 import sys
 import time
 import ccxt.async as ccxt
+sys.path.append("..")
+sys.path.append(os.getcwd())
+sys.path.append(os.path.dirname(os.getcwd()))
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import bz_conf
 
 
@@ -14,7 +19,48 @@ def symbol_2_string(symbol):
     return s
 
 async def is_support_symbol(exchange, symbol):
-    await exchange.load_markets()
+    err_timeout = 0
+    err_ddos = 0
+    err_auth = 0
+    err_not_available = 0
+    err_exchange = 0
+    err_network = 0
+    err = 0
+    while True:
+        try:
+            await exchange.load_markets()
+            break
+        except ccxt.RequestTimeout as e:
+            print(type(e).__name__, '=', e.args)
+            time.sleep(2)
+            err_timeout = err_timeout + 1
+            if err_timeout > 5:
+                return False
+        except ccxt.DDoSProtection as e:
+            print(type(e).__name__, '=', e.args)
+            time.sleep(2)
+            err_ddos = err_ddos + 1
+            if err_ddos > 5:
+                return False
+        except ccxt.AuthenticationError as e:
+            print(type(e).__name__, '=', e.args)
+            return False
+        except ccxt.ExchangeNotAvailable as e:
+            print(type(e).__name__, '=', e.args)
+            return    # 
+        except ccxt.ExchangeError as e:
+            print(type(e).__name__, '=', e.args)
+            return    # doesn't support xxx/xxx
+        except ccxt.NetworkError as e:
+            print(type(e).__name__, '=', e.args)
+            err_network = err_network + 1
+            if err_network > 5:
+                return False
+        except Exception as e:
+            print(type(e).__name__, '=', e.args)
+            err = err + 1
+            if err > 5:
+                return False
     if symbol in exchange.markets:
         return True
     return False

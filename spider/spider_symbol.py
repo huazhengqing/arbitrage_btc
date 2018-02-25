@@ -17,13 +17,21 @@ import bz_conf
 
 
 
-symbol = "BTC/USD"
+symbol = "ETH/BTC"
 if len(sys.argv) >= 2:
     symbol = sys.argv[1]
 print(symbol)
 
 
-exchanges = bz_conf.exchanges
+# for test
+exchanges = bz_conf.test_exchange_ids
+
+
+'''
+exchanges = bz_conf.exchange_ids
+'''
+
+
 
 
 db = util.db_banzhuan(util.symbol_2_string(symbol), bz_conf.db_dir)
@@ -45,8 +53,9 @@ async def get_ticker(exchange):
                 return
 
             ticker = await exchange.fetch_ticker(s)
-            db.add_bid_ask(exchange.id, ticker['timestamp'], ticker['bid'], ticker['ask'])
-            print(s, exchange.id, ticker['timestamp'], ticker['bid'], ticker['ask'])
+            dt = int(time.time())
+            db.add_bid_ask(exchange.id, dt, ticker['bid'], ticker['ask'])
+            print(s, exchange.id, dt, ticker['bid'], ticker['ask'])
 
             
             err_timeout = 0
@@ -90,15 +99,9 @@ async def get_ticker(exchange):
         except ccxt.ExchangeNotAvailable as e:
             print(type(e).__name__, '=', e.args)
             return    # 
-            err_not_available = err_not_available + 1
-            if err_not_available > 5:
-                return
         except ccxt.ExchangeError as e:
             print(type(e).__name__, '=', e.args)
             return    # doesn't support xxx/xxx
-            err_exchange = err_exchange + 1
-            if err_exchange > 5:
-                return
         except ccxt.NetworkError as e:
             print(type(e).__name__, '=', e.args)
             err_network = err_network + 1

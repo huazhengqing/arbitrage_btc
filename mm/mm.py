@@ -27,8 +27,11 @@ print(symbol, exchange1_id, exchange2_id)
 exchange1 = util.find_exchange_from_id(exchange1_id)
 exchange2 = util.find_exchange_from_id(exchange2_id)
 
+ex1 = util.exchange_data(symbol, exchange1)
+ex2 = util.exchange_data(symbol, exchange2)
+
 db_symbol = util.db_banzhuan(util.symbol_2_string(symbol), bz_conf.db_dir)
-mm = util.calc_stat_arb(symbol, exchange1, exchange2, db_symbol)
+mm = util.calc_stat_arb(symbol, ex1, ex2, db_symbol)
 mm.do_it()
 
 

@@ -11,8 +11,12 @@ root_dir = os.path.dirname(os.path.abspath(__file__))
 db_dir = root_dir + '/db/'
 
 
+test_exchange_ids = [
+    'binance', 
+]
 
-exchanges = [
+
+exchanges_ids = [
     'binance', 
     'bitfinex',     # 可空, 门槛 $10000
     'bitfinex2',     # 可空, 门槛 $10000
@@ -23,8 +27,8 @@ exchanges = [
     'exmo', 
     'gdax', 
     'gemini', 
-    'huobi',     # huobi No market symbol BTC/USDT
-    'huobicny',     # huobicny No market symbol BTC/USDT
+    #'huobi',     # huobi No market symbol BTC/USDT
+    #'huobicny',     # huobicny No market symbol BTC/USDT
     'huobipro', 
     'itbit',
     'kraken',       # 可空, 
@@ -56,7 +60,10 @@ bibox = ccxt.bibox({
 })
 binance = ccxt.binance({
     'enableRateLimit': True,
-    'rateLimit': 10000,
+    'rateLimit': 1000,
+    'apiKey': "kHgviPR8ijyNWn0PcltvzWkOqpr3nlDzGp6wY2ZEsQNa1F7k3ePhV0C7oOq8e6Cu",
+    'secret': "aqdBURqQxxk29mE31mEMIpW6zI5QsA5PKw1wf8VI7XDGG1WxJrAFWkTwEnMOJQbB",
+    #'verbose': True,
 })
 bit2c = ccxt.bit2c({
     'enableRateLimit': True,
@@ -73,8 +80,6 @@ bitcoincoid = ccxt.bitcoincoid({
 bitfinex = ccxt.bitfinex({
     'enableRateLimit': True,
     'rateLimit': 10000,
-#    'apiKey': "4FlEDtxDl35gdEiobnfZ72vJeZteE4Bb7JdvqzjIjHq",
-#    'secret': "D4DXM8DZdHuAq9YptUsb42aWT1XBnGlIJgLi8a7tzFH",
 })
 bitfinex2 = ccxt.bitfinex2({
     'enableRateLimit': True,
@@ -99,6 +104,8 @@ bitmarket = ccxt.bitmarket({
 bitmex = ccxt.bitmex({
     'enableRateLimit': True,
     'rateLimit': 10000,
+    "apiKey": "DPBrxuhRdVaBEUNiNaAlJOrw",
+    "secret": "spMNDyhaRhEtCyQTGPSMKOwW9YIM8LYV0daWOm4ZiNSleRew",
 })
 bitso = ccxt.bitso({
     'enableRateLimit': True,
@@ -115,8 +122,6 @@ bitstamp1 = ccxt.bitstamp1({
 bittrex = ccxt.bittrex({
     'enableRateLimit': True,
     'rateLimit': 10000,
-#    'apiKey': "c5af1d0ceeaa4729ad87da1b05d9dfc3",
-#    'secret': "d055d8e47fdf4c3bbd0ec6c289ea8ffd",
 })
 bitz = ccxt.bitz({
     'enableRateLimit': True,
@@ -275,24 +280,26 @@ hitbtc = ccxt.hitbtc({
 hitbtc2 = ccxt.hitbtc2({
     'enableRateLimit': True,
     'rateLimit': 10000,
+    "apiKey": "00c576eec474fab35709aeb546dcf577",
+    "secret": "568e6d454ea9897b183c4ba2ff4bf598",
 })
 huobi = ccxt.huobi({
     'enableRateLimit': True,
     'rateLimit': 10000,
-    #"apiKey": "",
-    #"secret": "",
+    "apiKey": "a3a1ee7f-2e64f1bb-925f3e37-3fe72",
+    "secret": "05c371ab-0d9d012f-39d3f12d-a6c68",
 })
 huobicny = ccxt.huobicny({
     'enableRateLimit': True,
     'rateLimit': 10000,
-    #"apiKey": "",
-    #"secret": "",
+    "apiKey": "a3a1ee7f-2e64f1bb-925f3e37-3fe72",
+    "secret": "05c371ab-0d9d012f-39d3f12d-a6c68",
 })
 huobipro = ccxt.huobipro({
     'enableRateLimit': True,
     'rateLimit': 10000,
-    #"apiKey": "",
-    #"secret": "",
+    "apiKey": "a3a1ee7f-2e64f1bb-925f3e37-3fe72",
+    "secret": "05c371ab-0d9d012f-39d3f12d-a6c68",
 })
 independentreserve = ccxt.independentreserve({
     'enableRateLimit': True,
@@ -309,12 +316,12 @@ jubi = ccxt.jubi({
 kraken = ccxt.kraken({
     'enableRateLimit': True,
     'rateLimit': 10000,
-#    'apiKey': "hEvQNMDIeoCJbr7W/ZBb5CGOrx3G0lWF5B3zqa1JBxdZlEaL8EK+D0Mw",
-#    'secret': "JaE9wI6Nwgh5oRxiHcVxurwzwBxwc05W/qv/k1srGg4s3EYuXPpNkLLM5NYbbWpM8rCyijIeDavRuqWbU0ZV9A==",
 })
 kucoin = ccxt.kucoin({
     'enableRateLimit': True,
     'rateLimit': 10000,
+    "apiKey": "5a92a5e003d644701f1a9c56",
+    "secret": "400e8874-e3cf-43f1-8765-63e4b7f535a5",
 })
 kuna = ccxt.kuna({
     'enableRateLimit': True,
@@ -355,14 +362,20 @@ nova = ccxt.nova({
 okcoincny = ccxt.okcoincny({
     'enableRateLimit': True,
     'rateLimit': 10000,
+    "apiKey": "63f1b985-88fe-48c1-bb91-2f6f1f086ce5",
+    "secret": "896AE910647BB0911BDF27949508E065",
 })
 okcoinusd = ccxt.okcoinusd({
     'enableRateLimit': True,
     'rateLimit': 10000,
+    "apiKey": "63f1b985-88fe-48c1-bb91-2f6f1f086ce5",
+    "secret": "896AE910647BB0911BDF27949508E065",
 })
 okex = ccxt.okex({
     'enableRateLimit': True,
     'rateLimit': 10000,
+    "apiKey": "7f10be5e-afd4-41a9-9c3c-fa9602996447",
+    "secret": "71B22F85C687D223954FE4432B2A61B9",
 })
 paymium = ccxt.paymium()
 poloniex = ccxt.poloniex({

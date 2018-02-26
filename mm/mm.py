@@ -16,7 +16,7 @@ import bz_conf
 import util
 
 
-symbol = "BTC/USD"
+symbol = "ETH/BTC"
 
 if len(sys.argv) >= 2:
     symbol = sys.argv[1]

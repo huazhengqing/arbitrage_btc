@@ -9,7 +9,7 @@ import ccxt.async as ccxt
 
 root_dir = os.path.dirname(os.path.abspath(__file__))
 db_dir = root_dir + '/db/'
-
+log_dir = root_dir + '/logs/'
 
 
 

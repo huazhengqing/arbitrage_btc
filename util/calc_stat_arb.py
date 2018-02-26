@@ -7,6 +7,7 @@ import logging
 import asyncio
 import numpy as np
 import ccxt.async as ccxt
+import bz_conf
 
 
 # 注：只有少数交易所，支持作空
@@ -52,7 +53,7 @@ class calc_stat_arb():
         # log
         self.logger = logging.getLogger(__name__)
         self.formatter = logging.Formatter('%(asctime)s %(levelname)-8s: %(message)s')
-        self.file_handler = logging.FileHandler("./logs/mm.log")
+        self.file_handler = logging.FileHandler(bz_conf.log_dir + "/mm.log")
         self.file_handler.setFormatter(self.formatter)
         self.console_handler = logging.StreamHandler(sys.stdout)
         self.console_handler.formatter = self.formatter

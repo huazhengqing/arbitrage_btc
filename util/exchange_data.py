@@ -4,14 +4,10 @@ import os
 import sys
 import time
 import asyncio
-import ccxt.async as ccxt
 import numpy as np
+import ccxt.async as ccxt
 import util
 
-'''
-交易费率
-币安网   0.1% 交易手续费。（扣除收取到的资产）
-'''
 
 
 class exchange_data():
@@ -28,7 +24,10 @@ class exchange_data():
         self.short_fee = 0.001
         self.limits_amount_min = 0.000001    # 最小买卖数量
         self.limits_price_min = 0.000001    # 最小价格
+        self.precision_amount = 8
+        self.precision_price = 2
         self.support_short = False    # 是否支持作空
+        self.is_ok_market = False
 
         # fetch_balance
         self.balance = None
@@ -41,7 +40,7 @@ class exchange_data():
         self.symbol2_total = 0
 
         # fetch_order_book
-        self.order_book1 = None
+        self.order_book = None
         self.buy_1_price = 0.0
         self.buy_1_quantity = 0.0
         self.sell_1_price = 0.0
@@ -50,6 +49,8 @@ class exchange_data():
 
     # 检查是否支持 symbol，确定最小交易量，费用
     async def load_markets(self):
+        if self.is_ok_market == True:
+            return
         self.symbol = await util.verify_symbol(self.ex, self.symbol)
         if self.symbol == '':
             return
@@ -57,19 +58,45 @@ class exchange_data():
         self.symbol_2 = self.symbol.split('/')[1]       # USD
 
         self.market = self.ex.markets[self.symbol]
-        self.long_fee = 0.0010        # 单笔交易费用 %
-        self.short_fee = 0.0010  
         
         # 最小交易量
         self.limits_amount_min = self.market['limits']['amount']['min']
         self.limits_price_min = self.market['limits']['price']['min']
 
+        # 精度
+        self.precision_amount = self.market['precision']['amount']
+        self.precision_price = self.market['precision']['price']
+
         self.support_short = True
+        self.long_fee = 0.0020        # 单笔交易费用 %
+        self.short_fee = 0.0020  
 
         if self.ex.id == 'binance':
             self.long_fee = 0.0010    # %
             self.short_fee = 0.0010    # %
             self.support_short = False
+        elif self.ex.id == 'huobipro':
+            self.long_fee = 0.0020    # %
+            self.short_fee = 0.0020    # %
+            self.support_short = True
+        elif self.ex.id == 'okcoinusd' or self.ex.id == 'okcoin' or self.ex.id == 'okcoincny':
+            self.long_fee = 0.0020    # %
+            self.short_fee = 0.0020    # %
+            self.support_short = False
+        elif self.ex.id == 'okex':
+            self.long_fee = 0.0020    # %
+            self.short_fee = 0.0020    # %
+            self.support_short = True
+        elif self.ex.id == 'bitfinex':
+            self.long_fee = 0.0020    # %
+            self.short_fee = 0.0020    # %
+            self.support_short = True
+        elif self.ex.id == 'bittrex':
+            self.long_fee = 0.0020    # %
+            self.short_fee = 0.0020    # %
+            self.support_short = True
+
+        self.is_ok_market = True
 
 
         
@@ -93,36 +120,32 @@ class exchange_data():
                 self.balance = await self.ex.fetch_balance(p)
                 break
             except ccxt.RequestTimeout as e:
-                print(type(e).__name__, '=', e.args)
-                time.sleep(2)
                 err_timeout = err_timeout + 1
-                if err_timeout > 5:
-                    return
+                print(self.ex.id, type(e).__name__, '=', e.args, 'c=', err_timeout)
             except ccxt.DDoSProtection as e:
-                print(type(e).__name__, '=', e.args)
-                time.sleep(2)
                 err_ddos = err_ddos + 1
-                if err_ddos > 5:
-                    return
+                print(self.ex.id, type(e).__name__, '=', e.args, 'c=', err_ddos)
+                time.sleep(30.0)
             except ccxt.AuthenticationError as e:
-                print(type(e).__name__, '=', e.args)
-                return
+                err_auth = err_auth + 1
+                print(self.ex.id, type(e).__name__, '=', e.args, 'c=', err_auth)
+                if err_auth > 5:
+                    return
             except ccxt.ExchangeNotAvailable as e:
-                print(type(e).__name__, '=', e.args)
+                print(self.ex.id, type(e).__name__, '=', e.args)
                 return
             except ccxt.ExchangeError as e:
-                print(type(e).__name__, '=', e.args)
-                return
+                print(self.ex.id, type(e).__name__, '=', e.args)
             except ccxt.NetworkError as e:
-                print(type(e).__name__, '=', e.args)
                 err_network = err_network + 1
-                if err_network > 5:
-                    return
+                print(self.ex.id, type(e).__name__, '=', e.args, 'c=', err_network)
+                time.sleep(10.0)
             except Exception as e:
-                print(type(e).__name__, '=', e.args)
                 err = err + 1
+                print(self.ex.id, type(e).__name__, '=', e.args)
                 if err > 5:
                     return
+                    
         self.symbol1_free = self.balance[self.symbol_1]['free']        # 已经开仓了多少
         self.symbol1_used = self.balance[self.symbol_1]['used']
         self.symbol1_total = self.balance[self.symbol_1]['total']
@@ -131,10 +154,8 @@ class exchange_data():
         self.symbol2_used = self.balance[self.symbol_2]['used']
         self.symbol2_total = self.balance[self.symbol_2]['total']
 
-    # 取深度信息，只取1层
+    # 取深度信息
     async def fetch_order_book(self):
-        if self.last_alive >= int(time.time()):
-            return True
         err_timeout = 0
         err_ddos = 0
         err_auth = 0
@@ -143,50 +164,48 @@ class exchange_data():
         err_network = 0
         err = 0
         p = {}
+        '''
         if self.ex.id == 'binance':
             p = {
                 'recvWindow' : 30000,
             }
+        '''
         while True:
             try:
-                self.order_book1 = await self.ex.fetch_order_book(self.symbol, 5)
-                #self.order_book1 = await self.ex.fetch_order_book(self.symbol, 5, p)
+                self.order_book = await self.ex.fetch_order_book(self.symbol, 5)
+                #self.order_book = await self.ex.fetch_order_book(self.symbol, 5, p)
                 break
             except ccxt.RequestTimeout as e:
-                print(type(e).__name__, '=', e.args)
-                time.sleep(2)
                 err_timeout = err_timeout + 1
-                if err_timeout > 5:
-                    return False
+                print(self.ex.id, type(e).__name__, '=', e.args, 'c=', err_timeout)
             except ccxt.DDoSProtection as e:
-                print(type(e).__name__, '=', e.args)
-                time.sleep(2)
                 err_ddos = err_ddos + 1
-                if err_ddos > 5:
-                    return False
+                print(self.ex.id, type(e).__name__, '=', e.args, 'c=', err_ddos)
+                time.sleep(30.0)
             except ccxt.AuthenticationError as e:
-                print(type(e).__name__, '=', e.args)
-                return False
+                err_auth = err_auth + 1
+                print(self.ex.id, type(e).__name__, '=', e.args, 'c=', err_auth)
+                if err_auth > 5:
+                    return False
             except ccxt.ExchangeNotAvailable as e:
-                print(type(e).__name__, '=', e.args)
+                print(self.ex.id, type(e).__name__, '=', e.args)
                 return False
             except ccxt.ExchangeError as e:
-                print(type(e).__name__, '=', e.args)
-                return False
+                print(self.ex.id, type(e).__name__, '=', e.args)
             except ccxt.NetworkError as e:
-                print(type(e).__name__, '=', e.args)
                 err_network = err_network + 1
-                if err_network > 5:
-                    return False
+                print(self.ex.id, type(e).__name__, '=', e.args, 'c=', err_network)
+                time.sleep(10.0)
             except Exception as e:
-                print(type(e).__name__, '=', e.args)
                 err = err + 1
+                print(self.ex.id, type(e).__name__, '=', e.args)
                 if err > 5:
                     return False
-        self.buy_1_price = self.order_book1['bids'][0][0]
-        self.buy_1_quantity = self.order_book1['bids'][0][1]
-        self.sell_1_price = self.order_book1['asks'][0][0]
-        self.sell_1_quantity = self.order_book1['asks'][0][1]
+
+        self.buy_1_price = self.order_book['bids'][0][0]
+        self.buy_1_quantity = self.order_book['bids'][0][1]
+        self.sell_1_price = self.order_book['asks'][0][0]
+        self.sell_1_quantity = self.order_book['asks'][0][1]
         self.last_alive = int(time.time())
         return True
         

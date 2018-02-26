@@ -58,16 +58,26 @@ class db_banzhuan:
         self.save(save_sql, data)
 
     def fetch(self, exchange, sql_condition):
-        sql = 'select * from ' + exchange + ' where  Datetime >= ' + sql_condition
-        self.cu.execute(sql)
-        rows = self.cu.fetchall() 
-        return rows
+        sql = 'select * from ' + exchange + ' where  Datetime >= ' + str(sql_condition)
+        print(sql)
+        try:
+            self.cu.execute(sql)
+            rows = self.cu.fetchall() 
+            return rows
+        except Exception as e:
+            print('fetch_one() sqlite3 err=', type(e).__name__, '=', e.args)
+            return None
 
     def fetch_one(self, exchange, sql_condition):
-        sql = 'select * from ' + exchange + ' where  Datetime == ' + sql_condition
-        self.cu.execute(sql)
-        rows = self.cu.fetchall()
-        return rows
+        sql = 'select * from ' + exchange + ' where  Datetime == ' + str(sql_condition)
+        #print(sql)
+        try:
+            self.cu.execute(sql)
+            rows = self.cu.fetchall()
+            return rows
+        except Exception as e:
+            print('fetch_one() sqlite3 err=', type(e).__name__, '=', e.args)
+            return None
 
             
 

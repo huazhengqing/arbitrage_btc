@@ -16,23 +16,23 @@ import util
 
 
 symbol = "ETH/BTC"
-exchange1_id = "binance"
+exchange_id = "okex"
 
 
 
-exchange1 = util.find_exchange_from_id(exchange1_id)
-ex1 = util.exchange_data(symbol, exchange1) 
+exchange = util.find_exchange_from_id(exchange_id)
+ex = util.exchange_data(symbol, exchange) 
 
 
 
 
-asyncio.get_event_loop().run_until_complete(ex1.load_markets())
+asyncio.get_event_loop().run_until_complete(ex.load_markets())
 
 
 
 tasks = [
-    asyncio.ensure_future(ex1.fetch_balance()),
-    asyncio.ensure_future(ex1.fetch_order_book()),
+    asyncio.ensure_future(ex.fetch_balance()),
+    asyncio.ensure_future(ex.fetch_order_book()),
 ]
 pending = asyncio.Task.all_tasks()
 loop = asyncio.get_event_loop()

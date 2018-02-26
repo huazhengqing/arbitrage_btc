@@ -3,6 +3,7 @@
 import os
 import sys
 import time
+import logging
 import asyncio
 import ccxt.async as ccxt
 import numpy as np

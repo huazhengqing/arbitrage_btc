@@ -24,6 +24,9 @@ symbols = [
     'LTC/USD', 
     'LTC/BTC', 
     'LTC/ETH', 
+    'XRP/USD', 
+    'XRP/BTC', 
+    'XRP/ETH', 
     
 ]
 
@@ -34,6 +37,6 @@ py_path = os.path.dirname(os.path.abspath(__file__)) + "\\mm.py"
 for symbol in symbols:
     cmd_str = "start /b   python    \"" + py_path + "\"     \"" + symbol + "\"    "
     print(cmd_str)
-    os.system(cmd_str)
+    #os.system(cmd_str)
     
 

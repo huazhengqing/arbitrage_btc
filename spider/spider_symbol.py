@@ -3,6 +3,7 @@
 import os
 import sys
 import time
+import logging
 import asyncio
 import ccxt.async as ccxt
 #import cfscrape
@@ -22,34 +23,27 @@ if len(sys.argv) >= 2:
 print(symbol)
 
 
-# for test
 exchanges = [
     'binance', 
+    #'bitfinex',     # 可空, 门槛 $10000
+    #'bitfinex2',     # 可空, 门槛 $10000
+    #'bitstamp', 
+    #'bitstamp1', 
+    #'bittrex',
+    #'cex',
+    #'exmo', 
+    #'gdax', 
+    #'gemini', 
     'huobipro', 
-]
-
-'''
-exchanges = [
-    'binance', 
-    'bitfinex',     # 可空, 门槛 $10000
-    'bitfinex2',     # 可空, 门槛 $10000
-    'bitstamp', 
-    'bitstamp1', 
-    'bittrex',
-    'cex',
-    'exmo', 
-    'gdax', 
-    'gemini', 
-    'huobipro', 
-    'itbit',
-    'kraken',       # 可空, 
-    'okcoinusd',     # 可空, 
-    'okex',     # 可空, 
-    'poloniex'    # 可空
-    'quadrigacx', 
-    'wex',
+    #'itbit',
+    #'kraken',       # 可空, 
+    #'okcoinusd',     # 可空, 
+    'okex',     # 可空,  server不稳定
+    #'poloniex'    # 可空
+    #'quadrigacx', 
+    #'wex',
     ]
-'''
+    
 
 
 db = util.db_banzhuan(util.symbol_2_string(symbol), bz_conf.db_dir)
@@ -68,6 +62,7 @@ async def get_ticker(exchange):
         try:
             s = await util.verify_symbol(exchange, symbol)
             if s == '':
+                print(exchange.id, 'no symbol=', symbol)
                 return
 
             ticker = await exchange.fetch_ticker(s)
@@ -84,50 +79,35 @@ async def get_ticker(exchange):
             err_network = 0
             err = 0
 
-
-            '''
-            # 可以取到价格和数量，没测过哪个速度快
-            order_book = await exchange.fetch_order_book(s, 1)      # 取深度信息，只取1层
-            dt = order_book['timestamp']
-            bid1 = order_book['bids'][0][0]
-            bid1_quantity = order_book['bids'][0][1]
-            ask1 = order_book['asks'][0][0]
-            ask1_quantity = order_book['asks'][0][1]
-            db.add_bid_ask(exchange.id, dt, bid1, ask1)
-            print(exchange.id, dt, bid1, ask1)
-            '''
-            
         except ccxt.RequestTimeout as e:
-            print(type(e).__name__, '=', e.args)
-            time.sleep(2)
             err_timeout = err_timeout + 1
-            if err_timeout > 5:
-                return
+            print(exchange.id, type(e).__name__, '=', e.args, 'c=', err_timeout)
         except ccxt.DDoSProtection as e:
-            print(type(e).__name__, '=', e.args)
-            time.sleep(2)
             err_ddos = err_ddos + 1
-            if err_ddos > 5:
-                return
+            print(exchange.id, type(e).__name__, '=', e.args, 'c=', err_ddos)
+            time.sleep(30.0)
         except ccxt.AuthenticationError as e:
-            print(type(e).__name__, '=', e.args)
             err_auth = err_auth + 1
+            print(exchange.id, type(e).__name__, '=', e.args, 'c=', err_auth)
             if err_auth > 5:
                 return
         except ccxt.ExchangeNotAvailable as e:
-            print(type(e).__name__, '=', e.args)
-            return    # 
+            print(exchange.id, type(e).__name__, '=', e.args)
+            return
         except ccxt.ExchangeError as e:
-            print(type(e).__name__, '=', e.args)
-            return    # doesn't support xxx/xxx
+            err_exchange = err_exchange + 1
+            print(exchange.id, type(e).__name__, '=', e.args, 'c=', err_exchange)
+            if err_exchange > 5:
+                return
         except ccxt.NetworkError as e:
-            print(type(e).__name__, '=', e.args)
             err_network = err_network + 1
+            print(exchange.id, type(e).__name__, '=', e.args, 'c=', err_network)
+            time.sleep(10.0)
             if err_network > 5:
                 return
         except Exception as e:
-            print(type(e).__name__, '=', e.args)
             err = err + 1
+            print(exchange.id, type(e).__name__, '=', e.args)
             if err > 5:
                 return
 

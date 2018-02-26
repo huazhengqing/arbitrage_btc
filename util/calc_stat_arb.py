@@ -3,10 +3,10 @@
 import os
 import sys
 import time
+import logging
 import asyncio
-import ccxt.async as ccxt
 import numpy as np
-
+import ccxt.async as ccxt
 
 
 # 注：只有少数交易所，支持作空
@@ -44,18 +44,28 @@ class calc_stat_arb():
         self.spread1_pos_qty = 0
         self.spread2_pos_qty = 0
 
-        self.check_data_timestamp = 0
-
         # 交易相关参数
         self.spread_entry_threshold = 0.0080    # 价格相差达到 % ，才下单搬砖，必需大于手续费
         self.order_book_ratio = 0.3  # 并不是所有挂单都能成交，每次预计能吃到的盘口深度的百分比
         self.max_exposure_ratio = 0.1    # 每次下单，可以下单的数量，占最大数量的多少 %
 
+        # log
+        self.logger = logging.getLogger(__name__)
+        self.formatter = logging.Formatter('%(asctime)s %(levelname)-8s: %(message)s')
+        self.file_handler = logging.FileHandler("./logs/mm.log")
+        self.file_handler.setFormatter(self.formatter)
+        self.console_handler = logging.StreamHandler(sys.stdout)
+        self.console_handler.formatter = self.formatter
+        self.logger.addHandler(self.file_handler)
+        self.logger.addHandler(self.console_handler)
+        self.logger.setLevel(logging.INFO)
+        
+
     # 向list添加1个元素，当list长度大于某个定值时，会将前面超出的部分删除
     def add_to_list(self, dest_list, element):
         if self.sma_window_size == 1:
             return [element]
-        while len(dest_list) >= self.sma_window_size:
+        while len(dest_list) > self.sma_window_size:
             del (dest_list[0])
         dest_list.append(element)
         return dest_list
@@ -95,8 +105,8 @@ class calc_stat_arb():
         return 0
 
     def check_fees(self):
-        p1 = abs(abs(self.spread1List[-1]) - abs(self.spread1_mean))
-        if (p1 / self.ex1.sell_1_price) > (self.ex1.long_fee  + self.ex2.short_fee):
+        p1 = abs((self.spread1List[-1]) - (self.spread1_mean))
+        if (p1 / self.ex1.sell_1_price) > (self.ex1.long_fee  + self.ex2.short_fee) * 2:
             return True
         return False
         '''
@@ -112,14 +122,16 @@ class calc_stat_arb():
         if len(self.spread1List) > 0:
             return
         # 取最近的 sma_window_size 个k线
-        from_dt = int(time.time()) - self.sma_window_size
+        from_dt = int(time.time()) - self.sma_window_size * 2
         for i in range(from_dt, from_dt + self.sma_window_size):
             self.fetch_data_from_db(i)
     
     # 从 db 中取1条指定时间的数据
     def fetch_data_from_db(self, sql_con_timestamp):
-        rows1 = self.db.fetch_one(self.ex1.ex, sql_con_timestamp)
-        rows2 = self.db.fetch_one(self.ex2.ex, sql_con_timestamp)
+        rows1 = self.db.fetch_one(self.ex1.ex.id, sql_con_timestamp)
+        rows2 = self.db.fetch_one(self.ex2.ex.id, sql_con_timestamp)
+        if rows1 is None or rows2 is None:
+            return
         if len(rows1) >= 1:
             for row1 in rows1:
                 self.ex1.buy_1_price = row1[1]
@@ -132,8 +144,10 @@ class calc_stat_arb():
                 self.ex2.last_alive = sql_con_timestamp
         if self.ex1.buy_1_price <= 0 or self.ex1.sell_1_price <= 0 or self.ex2.buy_1_price <= 0 or self.ex2.sell_1_price <= 0:
             return
-        spread1 = self.ex1.buy_1_price - self.ex2.sell_1_price
-        spread2 = self.ex2.buy_1_price - self.ex1.sell_1_price
+        spread1 = round(self.ex1.buy_1_price, self.ex1.precision_price) - round(self.ex2.sell_1_price, self.ex2.precision_price)
+        spread1 = round(spread1,  max(self.ex1.precision_price, self.ex2.precision_price))
+        spread2 = round(self.ex2.buy_1_price, self.ex2.precision_price) - round(self.ex1.sell_1_price, self.ex1.precision_price)
+        spread2 = round(spread2,  max(self.ex1.precision_price, self.ex2.precision_price))
         self.spread1List = self.add_to_list(self.spread1List, spread1)
         self.spread2List = self.add_to_list(self.spread2List, spread2)
 
@@ -166,14 +180,19 @@ class calc_stat_arb():
 
     # 取深度信息，只取1层
     async def fetch_order_book(self):
-        await self.ex1.fetch_order_book()
-        await self.ex2.fetch_order_book()
+        if await self.ex1.fetch_order_book() == False:
+            return False
+        if await self.ex2.fetch_order_book() == False:
+            return False
 
         # 加入数据列表
-        spread1 = self.ex1.buy_1_price - self.ex2.sell_1_price
-        spread2 = self.ex2.buy_1_price - self.ex1.sell_1_price
+        spread1 = round(self.ex1.buy_1_price, self.ex1.precision_price) - round(self.ex2.sell_1_price, self.ex2.precision_price)
+        spread1 = round(spread1,  max(self.ex1.precision_price, self.ex2.precision_price))
+        spread2 = round(self.ex2.buy_1_price, self.ex2.precision_price) - round(self.ex1.sell_1_price, self.ex1.precision_price)
+        spread2 = round(spread2,  max(self.ex1.precision_price, self.ex2.precision_price))
         self.spread1List = self.add_to_list(self.spread1List, spread1)
         self.spread2List = self.add_to_list(self.spread2List, spread2)
+        return True
 
 
     '''
@@ -238,6 +257,15 @@ class calc_stat_arb():
         elif self.current_position_direction == 1:
             self.spread1_pos_qty -= ok_qty
 
+    def log(self, position_direction):
+        str_bz = '\n' + self.symbol + ';bz=' + str(position_direction) + '\n'     \
+            + self.ex1.symbol + ';ex1=' + self.ex1.ex.id + ',bid=' + str(self.ex1.buy_1_price) + ',ask=' + str(self.ex1.sell_1_price) + '\n'    \
+            + self.ex2.symbol + ';ex2=' + self.ex2.ex.id + ',bid=' + str(self.ex2.buy_1_price) + ',ask=' + str(self.ex2.sell_1_price) + '\n'
+        if position_direction == 1:
+            str_bz = str_bz + self.symbol + ';sell=' + str(self.ex1.buy_1_price) + ';buy=' + str(self.ex2.sell_1_price) + '\n'
+        if position_direction == 2:
+            str_bz = str_bz + self.symbol + ';buy=' + str(self.ex1.sell_1_price) + ';sell=' + str(self.ex2.buy_1_price)
+        self.logger.info(str_bz)
 
     async def do_it(self):
         self.fetch_history_data_from_db()
@@ -245,21 +273,17 @@ class calc_stat_arb():
         await self.fetch_balance()
         self.init_spread_qty()
         while True:
-            cur_t = int(time.time())
-            if self.check_data_timestamp >= cur_t:
-                time.sleep(0.5)
-                continue
-            self.check_data_timestamp = cur_t
-
             # 取订单深度信息
-            await self.fetch_order_book()
+            if await self.fetch_order_book() == False:
+                continue
 
             # 数据不足，不计算, 等待足够的数据
             if len(self.spread1List) < self.sma_window_size or len(self.spread2List) < self.sma_window_size:
-                time.sleep(0.5)
+                self.logger.info(self.symbol + ',' + self.ex1.ex.id + ',' + self.ex2.ex.id + ';data len=' + str(len(self.spread1List)))
                 continue
             
             # 超过 5 秒钟没有收到新数据，等新数据
+            cur_t = int(time.time())
             timeout_warn = 5
             if self.ex1.last_alive < cur_t - timeout_warn or self.ex2.last_alive < cur_t - timeout_warn:
                 continue
@@ -283,6 +307,7 @@ class calc_stat_arb():
                 # 没有交易信号，继续=
                 continue
             elif position_direction == 1:
+                self.log(position_direction)
                 if self.current_position_direction == 0:  # 当前没有持仓
                     if self.check_fees() == False:
                         continue
@@ -299,14 +324,17 @@ class calc_stat_arb():
                     todo_qty = min(depth_qty, self.spread2_pos_qty)
                     
 
-                # 假定是保证金交易，2个交易所，都是持有 usd
+
 
                 # 最大可以开多少仓位
                 # ?????????????? 需要调试  ????????????????
                 # free used 什么意思
-                # 作空的仓位，是什么
-                can_op_qty_1 = self.ex1.symbol1_free + self.ex1.symbol2_free / self.ex1.buy_1_price
-                can_op_qty_2 = self.ex2.symbol1_used + self.ex2.symbol2_free / self.ex2.sell_1_price
+                can_op_qty_1 = self.ex1.symbol1_free
+                can_op_qty_2 = self.ex2.symbol2_free / self.ex2.sell_1_price
+                if self.ex1.support_short:
+                    can_op_qty_1 = can_op_qty_1 + self.ex1.symbol2_free / self.ex1.buy_1_price
+                if self.ex2.support_short:
+                    can_op_qty_2 = can_op_qty_2 + self.ex2.symbol1_used
                 qty_max = min(can_op_qty_1, can_op_qty_2)
                 # 每次最多只能买的数量, 暂定为最大交易量的  1/10
                 qty_by_cash_one = qty_max / 10
@@ -321,6 +349,7 @@ class calc_stat_arb():
                 await self.fetch_balance()
 
             elif position_direction == 2:
+                self.log(position_direction)
                 if self.current_position_direction == 0:  # 当前没有持仓
                     if self.check_fees() == False:
                         continue

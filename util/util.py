@@ -31,34 +31,29 @@ async def is_support_symbol(exchange, symbol):
             await exchange.load_markets()
             break
         except ccxt.RequestTimeout as e:
-            print(type(e).__name__, '=', e.args)
-            time.sleep(2)
             err_timeout = err_timeout + 1
-            if err_timeout > 5:
-                return False
+            print(exchange.id, type(e).__name__, '=', e.args, 'c=', err_timeout)
         except ccxt.DDoSProtection as e:
-            print(type(e).__name__, '=', e.args)
-            time.sleep(2)
             err_ddos = err_ddos + 1
-            if err_ddos > 5:
-                return False
+            print(exchange.id, type(e).__name__, '=', e.args, 'c=', err_ddos)
+            time.sleep(10.0)
         except ccxt.AuthenticationError as e:
-            print(type(e).__name__, '=', e.args)
-            return False
-        except ccxt.ExchangeNotAvailable as e:
-            print(type(e).__name__, '=', e.args)
-            return    # 
-        except ccxt.ExchangeError as e:
-            print(type(e).__name__, '=', e.args)
-            return    # doesn't support xxx/xxx
-        except ccxt.NetworkError as e:
-            print(type(e).__name__, '=', e.args)
-            err_network = err_network + 1
-            if err_network > 5:
+            err_auth = err_auth + 1
+            print(exchange.id, type(e).__name__, '=', e.args, 'c=', err_auth)
+            if err_auth > 5:
                 return False
+        except ccxt.ExchangeNotAvailable as e:
+            print(exchange.id, type(e).__name__, '=', e.args)
+            return False
+        except ccxt.ExchangeError as e:
+            print(exchange.id, type(e).__name__, '=', e.args)
+        except ccxt.NetworkError as e:
+            err_network = err_network + 1
+            print(exchange.id, type(e).__name__, '=', e.args, 'c=', err_network)
+            time.sleep(10.0)
         except Exception as e:
-            print(type(e).__name__, '=', e.args)
             err = err + 1
+            print(exchange.id, type(e).__name__, '=', e.args)
             if err > 5:
                 return False
     if symbol in exchange.markets:
@@ -88,9 +83,6 @@ async def verify_symbol(exchange, symbol):
         if await is_support_symbol(exchange, ret_s):
             return ret_s
     return ''
-
-
-
 
 
 def init_spider(db, exchanges):

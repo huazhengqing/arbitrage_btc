@@ -3,11 +3,12 @@
 import os
 import sys
 import time
+import logging
 import asyncio
 import numpy as np
 import ccxt.async as ccxt
 import util
-
+import bz_conf
 
 
 class exchange_data():
@@ -47,13 +48,24 @@ class exchange_data():
         self.sell_1_quantity = 0.0
         self.last_alive = 0
 
+        # log
+        self.logger = logging.getLogger(__name__)
+        self.formatter = logging.Formatter('%(asctime)s %(levelname)-8s: %(message)s')
+        self.file_handler = logging.FileHandler(bz_conf.log_dir + "/mm.log")
+        self.file_handler.setFormatter(self.formatter)
+        self.console_handler = logging.StreamHandler(sys.stdout)
+        self.console_handler.formatter = self.formatter
+        self.logger.addHandler(self.file_handler)
+        self.logger.addHandler(self.console_handler)
+        self.logger.setLevel(logging.INFO)
+
     # 检查是否支持 symbol，确定最小交易量，费用
     async def load_markets(self):
         if self.is_ok_market == True:
-            return
+            return True
         self.symbol = await util.verify_symbol(self.ex, self.symbol)
         if self.symbol == '':
-            return
+            return False
         self.symbol_1 = self.symbol.split('/')[0]       # BTC
         self.symbol_2 = self.symbol.split('/')[1]       # USD
 
@@ -97,6 +109,7 @@ class exchange_data():
             self.support_short = True
 
         self.is_ok_market = True
+        return True
 
 
         
@@ -121,30 +134,34 @@ class exchange_data():
                 break
             except ccxt.RequestTimeout as e:
                 err_timeout = err_timeout + 1
-                print(self.ex.id, type(e).__name__, '=', e.args, 'c=', err_timeout)
+                self.logger.info(self.ex.id + ',' + self.symbol + ',fetch_balance()' + type(e).__name__ + '=' + e.args.__str__() + ',c=' + str(err_timeout))
             except ccxt.DDoSProtection as e:
                 err_ddos = err_ddos + 1
-                print(self.ex.id, type(e).__name__, '=', e.args, 'c=', err_ddos)
+                self.logger.info(self.ex.id + ',' + self.symbol + ',fetch_balance()' + type(e).__name__ + '=' + e.args.__str__() + ',c=' + str(err_ddos))
                 time.sleep(30.0)
             except ccxt.AuthenticationError as e:
                 err_auth = err_auth + 1
-                print(self.ex.id, type(e).__name__, '=', e.args, 'c=', err_auth)
+                self.logger.info(self.ex.id + ',' + self.symbol + ',fetch_balance()' + type(e).__name__ + '=' + e.args.__str__() + ',c=' + str(err_auth))
                 if err_auth > 5:
-                    return
+                    return False
             except ccxt.ExchangeNotAvailable as e:
-                print(self.ex.id, type(e).__name__, '=', e.args)
-                return
+                self.logger.info(self.ex.id + ',' + self.symbol + ',fetch_balance()' + type(e).__name__ + '=' + e.args.__str__())
+                return False
             except ccxt.ExchangeError as e:
-                print(self.ex.id, type(e).__name__, '=', e.args)
+                err_exchange = err_exchange + 1
+                self.logger.info(self.ex.id + ',' + self.symbol + ',fetch_balance()' + type(e).__name__ + '=' + e.args.__str__() + ',c=' + str(err_exchange))
+                time.sleep(10.0)
+                if err_exchange > 5:
+                    return False
             except ccxt.NetworkError as e:
                 err_network = err_network + 1
-                print(self.ex.id, type(e).__name__, '=', e.args, 'c=', err_network)
+                self.logger.info(self.ex.id + ',' + self.symbol + ',fetch_balance()' + type(e).__name__ + '=' + e.args.__str__() + ',c=' + str(err_network))
                 time.sleep(10.0)
             except Exception as e:
                 err = err + 1
-                print(self.ex.id, type(e).__name__, '=', e.args)
+                self.logger.info(self.ex.id + ',' + self.symbol + ',fetch_balance()' + type(e).__name__ + '=' + e.args.__str__())
                 if err > 5:
-                    return
+                    return False
                     
         self.symbol1_free = self.balance[self.symbol_1]['free']        # 已经开仓了多少
         self.symbol1_used = self.balance[self.symbol_1]['used']
@@ -154,8 +171,13 @@ class exchange_data():
         self.symbol2_used = self.balance[self.symbol_2]['used']
         self.symbol2_total = self.balance[self.symbol_2]['total']
 
+        return True
+
     # 取深度信息
     async def fetch_order_book(self):
+        if self.symbol == '':
+            return False
+            
         err_timeout = 0
         err_ddos = 0
         err_auth = 0
@@ -177,28 +199,32 @@ class exchange_data():
                 break
             except ccxt.RequestTimeout as e:
                 err_timeout = err_timeout + 1
-                print(self.ex.id, type(e).__name__, '=', e.args, 'c=', err_timeout)
+                self.logger.info(self.ex.id + ',' + self.symbol + ',fetch_order_book()' + type(e).__name__ + '=' + e.args.__str__() + ',c=' + str(err_timeout))
             except ccxt.DDoSProtection as e:
                 err_ddos = err_ddos + 1
-                print(self.ex.id, type(e).__name__, '=', e.args, 'c=', err_ddos)
+                self.logger.info(self.ex.id + ',' + self.symbol + ',fetch_order_book()' + type(e).__name__ + '=' + e.args.__str__() + ',c=' + str(err_ddos))
                 time.sleep(30.0)
             except ccxt.AuthenticationError as e:
                 err_auth = err_auth + 1
-                print(self.ex.id, type(e).__name__, '=', e.args, 'c=', err_auth)
+                self.logger.info(self.ex.id + ',' + self.symbol + ',fetch_order_book()' + type(e).__name__ + '=' + e.args.__str__() + ',c=' + str(err_auth))
                 if err_auth > 5:
                     return False
             except ccxt.ExchangeNotAvailable as e:
-                print(self.ex.id, type(e).__name__, '=', e.args)
+                self.logger.info(self.ex.id + ',' + self.symbol + ',fetch_order_book()' + type(e).__name__ + '=' + e.args.__str__())
                 return False
             except ccxt.ExchangeError as e:
-                print(self.ex.id, type(e).__name__, '=', e.args)
+                err_exchange = err_exchange + 1
+                self.logger.info(self.ex.id + ',' + self.symbol + ',fetch_order_book()' + type(e).__name__ + '=' + e.args.__str__() + ',c=' + str(err_exchange))
+                time.sleep(10.0)
+                if err_exchange > 5:
+                    return False
             except ccxt.NetworkError as e:
                 err_network = err_network + 1
-                print(self.ex.id, type(e).__name__, '=', e.args, 'c=', err_network)
+                self.logger.info(self.ex.id + ',' + self.symbol + ',fetch_order_book()' + type(e).__name__ + '=' + e.args.__str__() + ',c=' + str(err_network))
                 time.sleep(10.0)
             except Exception as e:
                 err = err + 1
-                print(self.ex.id, type(e).__name__, '=', e.args)
+                self.logger.info(self.ex.id + ',' + self.symbol + ',fetch_order_book()' + type(e).__name__ + '=' + e.args.__str__())
                 if err > 5:
                     return False
 

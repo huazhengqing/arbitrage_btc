@@ -25,23 +25,26 @@ print(symbol)
 
 exchanges = [
     'binance', 
+    'huobipro', 
     #'bitfinex',     # 可空, 门槛 $10000
     #'bitfinex2',     # 可空, 门槛 $10000
     #'bitstamp', 
     #'bitstamp1', 
     #'bittrex',
+    'bitz',
     #'cex',
     #'exmo', 
-    #'gdax', 
+    'gdax', 
     #'gemini', 
-    'huobipro', 
     #'itbit',
     #'kraken',       # 可空, 
+    'kucoin', 
     #'okcoinusd',     # 可空, 
     'okex',     # 可空,  server不稳定
-    #'poloniex'    # 可空
+    'poloniex',    # 可空
     #'quadrigacx', 
     #'wex',
+    "zb", 
     ]
     
 

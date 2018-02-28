@@ -76,7 +76,7 @@ class db_banzhuan:
             rows = self.cu.fetchall()
             return rows
         except Exception as e:
-            print('fetch_one() sqlite3 err=', type(e).__name__, '=', e.args)
+            #print('fetch_one() sqlite3 err=', type(e).__name__, '=', e.args)
             return None
 
             

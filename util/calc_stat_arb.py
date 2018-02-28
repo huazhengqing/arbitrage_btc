@@ -179,7 +179,7 @@ class calc_stat_arb():
             self.current_position_direction = 0
 
 
-    # 取深度信息，只取1层
+    # 取深度信息
     async def fetch_order_book(self):
         if await self.ex1.fetch_order_book() == False:
             return False
@@ -280,7 +280,7 @@ class calc_stat_arb():
 
             # 数据不足，不计算, 等待足够的数据
             if len(self.spread1List) < self.sma_window_size or len(self.spread2List) < self.sma_window_size:
-                self.logger.info(self.symbol + ',' + self.ex1.ex.id + ',' + self.ex2.ex.id + ';data len=' + str(len(self.spread1List)))
+                #self.logger.info(self.symbol + ',' + self.ex1.ex.id + ',' + self.ex2.ex.id + ';data len=' + str(len(self.spread1List)))
                 continue
             
             # 超过 5 秒钟没有收到新数据，等新数据

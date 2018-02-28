@@ -24,9 +24,27 @@ print(symbol)
 
 
 exchange_ids = [
-    "binance", 
-    "huobipro", 
-    #"kraken", 
+    #'binance', 
+    #'huobipro', 
+    #'bitfinex',     # 可空, 门槛 $10000
+    #'bitfinex2',     # 可空, 门槛 $10000
+    'bitstamp', 
+    #'bitstamp1', 
+    #'bittrex',
+    'bitz',
+    #'cex',
+    #'exmo', 
+    'gdax', 
+    #'gemini', 
+    #'itbit',
+    #'kraken',       # 可空, 
+    'kucoin', 
+    #'okcoinusd',     # 可空, 
+    'okex',     # 可空,  server不稳定
+    'poloniex',    # 可空
+    #'quadrigacx', 
+    #'wex',
+    "zb", 
     ]
 
 exc_data_list = []

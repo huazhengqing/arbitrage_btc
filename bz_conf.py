@@ -97,6 +97,8 @@ bittrex = ccxt.bittrex({
 bitz = ccxt.bitz({
     'enableRateLimit': True,
     'rateLimit': 1000,
+    "apiKey": "c1cf93a1182e5a38bb8a8c3458310396",
+    "secret": "a7a55512ee789d6519fd005345644133",
 })
 bl3p = ccxt.bl3p({
     'enableRateLimit': True,
@@ -138,7 +140,10 @@ btcx = ccxt.btcx({
     'enableRateLimit': True,
     'rateLimit': 1000,
 })
-bxinth = ccxt.bxinth()
+bxinth = ccxt.bxinth({
+    'enableRateLimit': True,
+    'rateLimit': 1000,
+})
 ccex = ccxt.ccex({
     'enableRateLimit': True,
     'rateLimit': 1000,
@@ -230,9 +235,9 @@ gateio = ccxt.gateio({
 gdax = ccxt.gdax({
     'enableRateLimit': True,
     'rateLimit': 1000,
-#    'apiKey': "a43edfe629bc5991acc83a536ac6358e",
-#    'secret': "xOvq+iH8NT07TheFB/fmY3GcnMZMwP7Xct9zwWtAZxsCbJh8rxeEe/0BGxfbV2em7P9iqQD7/TJGqmsDO8B/kw==",
-#    'password': 'zdmj8o7byla',
+    'apiKey': "GnFmvkkPinzOXSWM",
+    'secret': "",
+    'password': 'zdmj8o7byla',
 })
 gemini = ccxt.gemini({
     'enableRateLimit': True,
@@ -352,6 +357,8 @@ paymium = ccxt.paymium()
 poloniex = ccxt.poloniex({
     'enableRateLimit': True,
     'rateLimit': 1000,
+    "apiKey": "OQDZM5YM-OKX5QEUE-Z3IDJZG2-NEHLDQKS",
+    "secret": "b36baf9613ab1fec64c549c2472e7b7c2b63b4f16667feb576a0601331fdd24bb1b22dda3c867e89b7beb5b2854cf66b6f2cd011d1adb8634ddeb3f7310337e1",
 })
 qryptos = ccxt.qryptos({
     'enableRateLimit': True,
@@ -420,6 +427,7 @@ zaif = ccxt.zaif({
 zb = ccxt.zb({
     'enableRateLimit': True,
     'rateLimit': 1000,
+    "apiKey": "a6fad7d3-3830-400d-8326-b1f8b3fb68ec",
+    "secret": "1c5f5e7e-1c37-4cac-9bd3-029292da681a",
 })
-
 

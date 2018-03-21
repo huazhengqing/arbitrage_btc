@@ -18,7 +18,7 @@ def symbol_2_string(symbol):
     s = symbol_1 + '_' + symbol_2
     return s
 
-async def is_support_symbol(exchange, symbol):
+async def load_markets(exchange):
     err_timeout = 0
     err_ddos = 0
     err_auth = 0
@@ -29,7 +29,7 @@ async def is_support_symbol(exchange, symbol):
     while True:
         try:
             await exchange.load_markets()
-            break
+            return True
         except ccxt.RequestTimeout as e:
             err_timeout = err_timeout + 1
             print(exchange.id, type(e).__name__, '=', e.args, 'c=', err_timeout)
@@ -56,6 +56,10 @@ async def is_support_symbol(exchange, symbol):
             print(exchange.id, type(e).__name__, '=', e.args)
             if err > 5:
                 return False
+    return False
+
+async def is_support_symbol(exchange, symbol):
+    await load_markets(exchange)
     if symbol in exchange.markets:
         return True
     return False

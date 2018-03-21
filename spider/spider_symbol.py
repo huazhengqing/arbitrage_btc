@@ -17,7 +17,7 @@ import util
 import bz_conf
 
 
-symbol = "ETH/BTC"
+symbol = "BTC/USD"
 if len(sys.argv) >= 2:
     symbol = sys.argv[1]
 print(symbol)
@@ -26,27 +26,53 @@ print(symbol)
 exchanges = [
     'binance', 
     'huobipro', 
-    #'bitfinex',     # 可空, 门槛 $10000
+    'bitfinex',     # 可空, 门槛 $10000
     #'bitfinex2',     # 可空, 门槛 $10000
-    #'bitstamp', 
-    #'bitstamp1', 
-    #'bittrex',
+    'bitstamp', 
+    #'bitstamp1',     # doesn't support ETH/BTC, use it for BTC/USD only
+    'bittrex',
     'bitz',
-    #'cex',
-    #'exmo', 
+    'cex',
+    'exmo', 
     'gdax', 
-    #'gemini', 
-    #'itbit',
-    #'kraken',       # 可空, 
+    'gemini', 
+    'itbit',    # no symbol= ETH/BTC
+    'kraken',       # 可空, 
     'kucoin', 
-    #'okcoinusd',     # 可空, 
+    'okcoinusd',     # 可空, # no symbol= ETH/BTC
     'okex',     # 可空,  server不稳定
     'poloniex',    # 可空
-    #'quadrigacx', 
-    #'wex',
+    'quadrigacx', 
+    'wex',
     "zb", 
     ]
     
+
+exchanges_btc_usd = [
+    'binance', 
+    'huobipro', 
+    'bitfinex',     # 可空, 门槛 $10000
+    #'bitfinex2',     # 可空, 门槛 $10000
+    'bitstamp', 
+    #'bitstamp1',     # doesn't support ETH/BTC, use it for BTC/USD only
+    'bittrex',
+    'bitz',
+    'cex',
+    'exmo', 
+    'gdax', 
+    'gemini', 
+    'itbit',    # no symbol= ETH/BTC
+    'kraken',       # 可空, 
+    'kucoin', 
+    'okcoinusd',     # 可空, # no symbol= ETH/BTC
+    'okex',     # 可空,  server不稳定
+    'poloniex',    # 可空
+    'quadrigacx', 
+    'wex',
+    "zb", 
+    ]
+
+
 
 
 db = util.db_banzhuan(util.symbol_2_string(symbol), bz_conf.db_dir)
@@ -73,7 +99,6 @@ async def get_ticker(exchange):
             db.add_bid_ask(exchange.id, dt, ticker['bid'], ticker['ask'])
             print(s, exchange.id, dt, ticker['bid'], ticker['ask'])
 
-            
             err_timeout = 0
             err_ddos = 0
             err_auth = 0
@@ -85,6 +110,7 @@ async def get_ticker(exchange):
         except ccxt.RequestTimeout as e:
             err_timeout = err_timeout + 1
             print(exchange.id, type(e).__name__, '=', e.args, 'c=', err_timeout)
+            #time.sleep(10.0)
         except ccxt.DDoSProtection as e:
             err_ddos = err_ddos + 1
             print(exchange.id, type(e).__name__, '=', e.args, 'c=', err_ddos)
@@ -95,11 +121,15 @@ async def get_ticker(exchange):
             if err_auth > 5:
                 return
         except ccxt.ExchangeNotAvailable as e:
-            print(exchange.id, type(e).__name__, '=', e.args)
-            return
+            err_not_available = err_not_available + 1
+            print(exchange.id, type(e).__name__, '=', e.args, 'c=', err_not_available)
+            time.sleep(30.0)
+            if err_not_available > 5:
+                return
         except ccxt.ExchangeError as e:
             err_exchange = err_exchange + 1
             print(exchange.id, type(e).__name__, '=', e.args, 'c=', err_exchange)
+            time.sleep(30.0)
             if err_exchange > 5:
                 return
         except ccxt.NetworkError as e:

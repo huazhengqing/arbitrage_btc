@@ -16,7 +16,7 @@ import bz_conf
 import util
 
 
-symbol = "ETH/BTC"
+symbol = "BTC/USD"
 
 if len(sys.argv) >= 2:
     symbol = sys.argv[1]
@@ -28,20 +28,20 @@ exchange_ids = [
     #'huobipro', 
     #'bitfinex',     # 可空, 门槛 $10000
     #'bitfinex2',     # 可空, 门槛 $10000
-    'bitstamp', 
+    #'bitstamp', 
     #'bitstamp1', 
     #'bittrex',
-    'bitz',
+    #'bitz',
     #'cex',
     #'exmo', 
-    'gdax', 
+    #'gdax', 
     #'gemini', 
     #'itbit',
     #'kraken',       # 可空, 
-    'kucoin', 
+    #'kucoin', 
     #'okcoinusd',     # 可空, 
     'okex',     # 可空,  server不稳定
-    'poloniex',    # 可空
+    #'poloniex',    # 可空
     #'quadrigacx', 
     #'wex',
     "zb", 

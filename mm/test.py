@@ -15,8 +15,8 @@ import bz_conf
 import util
 
 
-symbol = "ETH/BTC"
-exchange_id = "zb"
+symbol = "BTC/USD"
+exchange_id = "okex"
 
 exchange_ids = [
     #'binance', 

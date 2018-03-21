@@ -69,6 +69,9 @@ class exchange_data():
         self.symbol_1 = self.symbol.split('/')[0]       # BTC
         self.symbol_2 = self.symbol.split('/')[1]       # USD
 
+        if 'okex' == self.ex.id:
+            if self.symbol_2 ==  'USD':
+                self.symbol_2 = 'USDT'
         self.market = self.ex.markets[self.symbol]
         
         # 最小交易量
@@ -145,12 +148,15 @@ class exchange_data():
                 if err_auth > 5:
                     return False
             except ccxt.ExchangeNotAvailable as e:
-                self.logger.info(self.ex.id + ',' + self.symbol + ',fetch_balance()' + type(e).__name__ + '=' + e.args.__str__())
-                return False
+                err_not_available = err_not_available + 1
+                self.logger.info(self.ex.id + ',' + self.symbol + ',fetch_balance()' + type(e).__name__ + '=' + e.args.__str__() + ',c=' + str(err_not_available))
+                time.sleep(30.0)
+                if err_not_available > 5:
+                    return False
             except ccxt.ExchangeError as e:
                 err_exchange = err_exchange + 1
                 self.logger.info(self.ex.id + ',' + self.symbol + ',fetch_balance()' + type(e).__name__ + '=' + e.args.__str__() + ',c=' + str(err_exchange))
-                time.sleep(10.0)
+                time.sleep(30.0)
                 if err_exchange > 5:
                     return False
             except ccxt.NetworkError as e:
@@ -160,6 +166,7 @@ class exchange_data():
             except Exception as e:
                 err = err + 1
                 self.logger.info(self.ex.id + ',' + self.symbol + ',fetch_balance()' + type(e).__name__ + '=' + e.args.__str__())
+                time.sleep(10.0)
                 if err > 5:
                     return False
                     
@@ -210,12 +217,15 @@ class exchange_data():
                 if err_auth > 5:
                     return False
             except ccxt.ExchangeNotAvailable as e:
-                self.logger.info(self.ex.id + ',' + self.symbol + ',fetch_order_book()' + type(e).__name__ + '=' + e.args.__str__())
-                return False
+                err_not_available = err_not_available + 1
+                self.logger.info(self.ex.id + ',' + self.symbol + ',fetch_order_book()' + type(e).__name__ + '=' + e.args.__str__() + ',c=' + str(err_not_available))
+                time.sleep(30.0)
+                if err_not_available > 5:
+                    return False
             except ccxt.ExchangeError as e:
                 err_exchange = err_exchange + 1
                 self.logger.info(self.ex.id + ',' + self.symbol + ',fetch_order_book()' + type(e).__name__ + '=' + e.args.__str__() + ',c=' + str(err_exchange))
-                time.sleep(10.0)
+                time.sleep(30.0)
                 if err_exchange > 5:
                     return False
             except ccxt.NetworkError as e:

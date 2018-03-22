@@ -27,11 +27,13 @@ async def mm_three(exchange):
     t = util.three_data(exchange)
     await t.load_markets()
     while True:
-        #await t.fetch_balance()
+        await t.fetch_balance()
         if await t.calc_token():
             print("%s \t %10.4f"%(t.token, t.profit))
-            #t.load_token_markets()
-            #await t.fetch_order_book()
+            t.load_token_markets()
+            await t.fetch_order_book()
+            print(t.token_btc, ': bids=', t.token_btc_order_book['bids'][0][0], t.token_btc_order_book['bids'][0][1], '|asks=', t.token_btc_order_book['asks'][0][0], t.token_btc_order_book['asks'][0][1], '|spread%=', round((t.token_btc_order_book['asks'][0][0]-t.token_btc_order_book['bids'][0][0])/t.token_btc_order_book['asks'][0][0], 4))
+            print(t.token_eth, ': bids=', t.token_eth_order_book['bids'][0][0], t.token_eth_order_book['bids'][0][1], '|asks=', t.token_eth_order_book['asks'][0][0], t.token_eth_order_book['asks'][0][1], '|spread%=', round((t.token_eth_order_book['asks'][0][0]-t.token_eth_order_book['bids'][0][0])/t.token_eth_order_book['asks'][0][0], 4))
             #await t.op_token()
         
 

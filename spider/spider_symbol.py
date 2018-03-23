@@ -41,7 +41,7 @@ exchanges = [
     'kucoin', 
     'okcoinusd',     # 可空, # no symbol= ETH/BTC
     'okex',     # 可空,  server不稳定
-    'poloniex',    # 可空
+    #'poloniex',    # 可空
     'quadrigacx', 
     'wex',
     "zb", 
@@ -87,17 +87,12 @@ async def get_ticker(exchange):
     err_exchange = 0
     err_network = 0
     err = 0
+    ex = util.exchange_data(symbol, exchange)
     while True:
         try:
-            s = await util.verify_symbol(exchange, symbol)
-            if s == '':
-                print(exchange.id, 'no symbol=', symbol)
-                return
-
-            ticker = await exchange.fetch_ticker(s)
-            dt = int(time.time())
-            db.add_bid_ask(exchange.id, dt, ticker['bid'], ticker['ask'])
-            print(s, exchange.id, dt, ticker['bid'], ticker['ask'])
+            if await ex.fetch_ticker():
+                db.add_bid_ask(ex.ex.id, ex.ticker_time, ex.ticker['bid'], ex.ticker['ask'])
+                print(ex.symbol, ex.ex.id, ex.ticker_time, ex.ticker['bid'], ex.ticker['ask'])
 
             err_timeout = 0
             err_ddos = 0
@@ -106,11 +101,9 @@ async def get_ticker(exchange):
             err_exchange = 0
             err_network = 0
             err = 0
-
         except ccxt.RequestTimeout as e:
             err_timeout = err_timeout + 1
             print(exchange.id, type(e).__name__, '=', e.args, 'c=', err_timeout)
-            #time.sleep(10.0)
         except ccxt.DDoSProtection as e:
             err_ddos = err_ddos + 1
             print(exchange.id, type(e).__name__, '=', e.args, 'c=', err_ddos)

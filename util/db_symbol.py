@@ -21,7 +21,7 @@ class db_symbol:
         self.symbol = symbol
         self.symbol_str = util.util.symbol_2_string(symbol)
         self.dir_db = dir_db
-        path = self.dir_db + self.symbol_str + '.db'
+        path = self.dir_db + self.symbol_str + '.sqlite3'
         print(path)
         self.conn = sqlite3.connect(path)
         #self.conn = sqlite3.connect(':memory:')

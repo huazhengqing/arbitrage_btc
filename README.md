@@ -1,8 +1,12 @@
-# banzhuan_btc
+## Install
+
+- [Anaconda](https://www.anaconda.com/)
+- [ccxt](https://github.com/ccxt/ccxt)
 
 
-
-
-pip install numpy
-
+```shell
+pip install --upgrade ccxt
+pip install --upgrade numpy
+pip install --upgrade cfscrape
+```
 

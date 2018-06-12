@@ -17,8 +17,6 @@ import ccxt.async as ccxt
 import conf.conf
 
 
-#############################################################
-
 def get_exchange(id, use_key):
     if id in ccxt.exchanges:
         exchange = getattr(ccxt, id)({
@@ -72,8 +70,6 @@ def print_supported_exchanges():
     s = to_str('Supported exchanges:', ', '.join(ccxt.exchanges))
     print(s)
 
-#############################################################
-
 def get_symbol(base, quote):
     if base == "CNY":
         return "{0}/{1}".format(quote, base)
@@ -91,7 +87,6 @@ def symbol_2_string(symbol):
 
 def downRound(qty, decimal_places):
     return int(qty * math.pow(10, decimal_places)) / int(math.pow(10, decimal_places))
-
 
 # 从对象拿数据
 def componentExtract(object, key, default=None):
@@ -119,37 +114,6 @@ def timestamp_to_timestr(timestamp):
     time_struct = time.localtime(timestamp)
     time_string = time.strftime("%Y%m%d_%H%M%S", time_struct)
     return time_string
-
-# 抽象出timelogger
-class TimeLogger(object):
-    def __init__(self, logFileName):
-        self.timeLogger = logging.getLogger('timeLog')
-        self.timeLogger.setLevel(logging.DEBUG)
-        self.timeLogHandler = logging.FileHandler(logFileName)
-        self.timeLogHandler.setLevel(logging.DEBUG)
-        self.consoleLogHandler = logging.StreamHandler()
-        self.consoleLogHandler.setLevel(logging.DEBUG)
-        # 定义handler的输出格式
-        formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
-        self.timeLogHandler.setFormatter(formatter)
-        self.consoleLogHandler.setFormatter(formatter)
-        # 给timeLogger添加handler
-        self.timeLogger.addHandler(self.timeLogHandler)
-        self.timeLogger.addHandler(self.consoleLogHandler)
-
-    def timeLog(self, content, level=logging.INFO):
-        if level == logging.DEBUG:
-            self.timeLogger.debug(content)
-        elif level == logging.INFO:
-            self.timeLogger.info(content)
-        elif level == logging.WARN:
-            self.timeLogger.warn(content)
-        elif level == logging.ERROR:
-            self.timeLogger.error(content)
-        elif level == logging.CRITICAL:
-            self.timeLogger.critical(content)
-        else:
-            raise ValueError("unsupported logging level %d" % level)
 
 # 计算时间差
 def diff_times_in_seconds(t1, t2):

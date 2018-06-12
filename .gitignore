@@ -2,6 +2,10 @@
 .idea
 logs/*
 db/*
+
+!.gitkeep
+!.gitignore
+
 tmp/
 .DS_Store
 

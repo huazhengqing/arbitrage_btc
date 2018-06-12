@@ -1,4 +1,8 @@
 .vscode
+.idea
 __pycache__
-logs/
-db/
+build/*
+logs/*
+db/*
+tmp/
+.DS_Store

@@ -192,8 +192,14 @@ class stat_arbitrage():
         # 没有仓位
         if self.current_position_direction == 0:
             if (self.spread1List[-1] - self.spread1_mean) / self.spread1_stdev > self.spread1_open_condition_stdev_coe:
+                if (abs(self.spread1List[-1] - self.spread1_mean) / self.ex1.sell_1_price) < (self.ex1.fee_taker  + self.ex2.fee_taker) * 3:
+                    self.logger.debug('calc_position_direction() check_fees 1')
+                    return 0
                 return 1
             elif (self.spread2List[-1] - self.spread2_mean) / self.spread2_stdev > self.spread2_open_condition_stdev_coe:
+                if (abs(self.spread2List[-1] - self.spread2_mean) / self.ex1.buy_1_price) < (self.ex1.fee_taker  + self.ex2.fee_taker) * 3:
+                    self.logger.debug('calc_position_direction() check_fees 2')
+                    return 0
                 return 2
         # 已有仓位, 方向1 (sell exchange1, buy exchange2)
         elif self.current_position_direction == 1:
@@ -213,12 +219,6 @@ class stat_arbitrage():
                 return 1
         # 没有达到搬砖条件
         return 0
-
-    def check_fees(self):
-        p1 = abs((self.spread1List[-1]) - (self.spread1_mean))
-        if (p1 / self.ex1.sell_1_price) > (self.ex1.fee_taker  + self.ex2.fee_taker) * 3:
-            return True
-        return False
 
     async def run_arbitrage(self):
         await self.init_data()
@@ -259,13 +259,9 @@ class stat_arbitrage():
             elif position_direction == 1:
                 self.log(position_direction)
                 if self.current_position_direction == 0:  # 当前没有持仓
-                    if not self.check_fees():
-                        continue
                     # 计算第1次开仓数量
                     amount_todo = min(self.ex1.buy_1_quantity, self.ex2.sell_1_quantity) * self.order_book_ratio
                 elif self.current_position_direction == 1:  # 当前long spread1
-                    if not self.check_fees():
-                        continue
                     # 已有仓位，计算加仓数量
                     amount_todo = min(self.ex1.buy_1_quantity, self.ex2.sell_1_quantity) * self.order_book_ratio
                 elif self.current_position_direction == 2:  # 当前long spread2
@@ -290,13 +286,9 @@ class stat_arbitrage():
             elif position_direction == 2:
                 self.log(position_direction)
                 if self.current_position_direction == 0:  # 当前没有持仓
-                    if not self.check_fees():
-                        continue
                     # 计算第1次开仓数量
                     amount_todo = min(self.ex2.buy_1_quantity, self.ex1.sell_1_quantity) * self.order_book_ratio
                 elif self.current_position_direction == 2:  # 当前long spread2
-                    if not self.check_fees():
-                        continue
                     # 已有仓位，计算加仓数量
                     amount_todo = min(self.ex2.buy_1_quantity, self.ex1.sell_1_quantity) * self.order_book_ratio
                 elif self.current_position_direction == 1:  # 当前long spread1

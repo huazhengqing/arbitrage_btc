@@ -56,7 +56,8 @@ async def fetch_ticker_to_db(symbol, id):
     await ex.run(ex.fetch_ticker_to_db, symbol, db)
 
 
-[asyncio.ensure_future(fetch_ticker_to_db(symbol, id)) for id in exchanges]
+#[asyncio.ensure_future(fetch_ticker_to_db(symbol, id)) for id in exchanges]
+[asyncio.ensure_future(fetch_ticker_to_db(symbol, 'bittrex'))]
 pending = asyncio.Task.all_tasks()
 loop = asyncio.get_event_loop()
 loop.run_until_complete(asyncio.gather(*pending))

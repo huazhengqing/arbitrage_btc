@@ -25,13 +25,12 @@ class exchange_base:
         self.ex.markets['ETH/BTC']['precision']['amount']   # 精度 8
         self.ex.markets['ETH/BTC']['precision']['price']    # 精度 2
         '''
-        self.markets = None
 
         # 手续费 百分比
         self.fee_taker = 0.001
 
         # 是否支持作空
-        self.support_short = False
+        #self.support_short = False
 
         '''
         self.balance['BTC']['free']     # 还有多少钱
@@ -86,6 +85,7 @@ class exchange_base:
 
         # 仓位再平衡
         self.rebalanced_position_proportion = 0.5
+        self.rebalance_time = 0
         
         self.logger = None
 
@@ -111,7 +111,6 @@ class exchange_base:
         self.symbol_cur = symbol         # BTC/USD
         self.base_cur = symbol.split('/')[0]       # BTC
         self.quote_cur = symbol.split('/')[1]       # USD
-
 
     '''
     self.ex.markets['ETH/BTC']['limits']['amount']['min']   # 最小交易量 0.000001
@@ -244,55 +243,73 @@ class exchange_base:
         'info': { ... },              // the original unparsed order structure as is
     }
     '''
+    # 限价买卖
     async def buy_cancel(self, symbol, amount):
-        ret = await self.ex.create_order(symbol, 'limit', 'buy', amount, self.order_book[symbol]['asks'][0][0], {'leverage': 1})
+        if amount <= 0.0:
+            return
+        #await self.fetch_order_book(symbol, 5)
+        price = self.order_book[symbol]['asks'][0][0]
+        ret = await self.ex.create_order(symbol, 'limit', 'buy', amount, price, {'leverage': 1})
         # 订单没有成交全部，剩下的订单取消
         if ret['remaining'] > 0:
             await self.ex.cancel_order(ret['id'])
         return ret
 
     async def sell_cancel(self, symbol, amount):
-        ret = await self.ex.create_order(symbol, 'limit', 'sell', amount, self.order_book[symbol]['bids'][0][0], {'leverage': 1})
+        if amount <= 0.0:
+            return
+        #await self.fetch_order_book(symbol, 5)
+        price = self.order_book[symbol]['bids'][0][0]
+        ret = await self.ex.create_order(symbol, 'limit', 'sell', amount, price, {'leverage': 1})
         # 订单没有成交全部，剩下的订单取消
         if ret['remaining'] > 0:
             await self.ex.cancel_order(ret['id'])
         return ret
 
+    # 有交易所，只支持 limit order 
     async def buy_all(self, symbol, amount):
-        ret = await self.ex.create_order(symbol, 'market', 'buy', amount, None, {'leverage': 1})
-        while ret['remaining'] > 0:
-            ret = await self.ex.create_order(symbol, 'market', 'buy', ret['remaining'], None, {'leverage': 1})
+        if amount <= 0.0:
+            return
+        #await self.fetch_order_book(symbol, 5)
+        price = self.order_book[symbol]['asks'][0][0]
+        ret = await self.ex.create_order(symbol, 'limit', 'buy', amount, price, {'leverage': 1})
+        while ret['remaining'] >= self.ex.markets[symbol]['limits']['amount']['min']:
+            price = self.order_book[symbol]['asks'][4][0]
+            ret = await self.ex.create_order(symbol, 'limit', 'buy', ret['remaining'], price, {'leverage': 1})
+            if ret['remaining'] >= self.ex.markets[symbol]['limits']['amount']['min']:
+                await self.fetch_order_book(symbol, 5)
 
     async def sell_all(self, symbol, amount):
-        ret = await self.ex.create_order(symbol, 'market', 'sell', amount, None, {'leverage': 1})
-        while ret['remaining'] > 0:
-            ret = await self.ex.create_order(symbol, 'market', 'sell', ret['remaining'], None, {'leverage': 1})
+        if amount <= 0.0:
+            return
+        #await self.fetch_order_book(symbol, 5)
+        price = self.order_book[symbol]['bids'][0][0]
+        ret = await self.ex.create_order(symbol, 'limit', 'sell', amount, price, {'leverage': 1})
+        while ret['remaining'] >= self.ex.markets[symbol]['limits']['amount']['min']:
+            price = self.order_book[symbol]['bids'][4][0]
+            ret = await self.ex.create_order(symbol, 'limit', 'sell', ret['remaining'], price, {'leverage': 1})
+            if ret['remaining'] >= self.ex.markets[symbol]['limits']['amount']['min']:
+                await self.fetch_order_book(symbol, 5)
 
     # 仓位再平衡
     async def rebalance_position(self, symbol):
         if self.rebalanced_position_proportion <= 0.0:
             return
-        self.set_symbol(symbol)
-        await self.fetch_ticker(symbol)
+        if int(time.time()) < self.rebalance_time + 60:
+            return
+        await self.load_markets()
         await self.fetch_balance()
+        await self.fetch_ticker(symbol)
+        self.set_symbol(symbol)
         pos_value = self.balance[self.base_cur]['free'] * self.ticker['bid']
-        total_pos = self.balance[self.quote_cur]['free'] + pos_value
-        target_pos_value = total_pos * self.rebalanced_position_proportion
-        if target_pos_value > pos_value + self.ex.markets[symbol]['limits']['amount']['min'] * self.ticker['ask']:  # need to buy
+        total_value = self.balance[self.quote_cur]['free'] + pos_value
+        target_pos_value = total_value * self.rebalanced_position_proportion
+        if pos_value < target_pos_value * 0.97:
             await self.buy_all(symbol, target_pos_value - pos_value)
-        elif pos_value > target_pos_value + self.ex.markets[symbol]['limits']['amount']['min'] * self.ticker['bid']:  # need to sell
+        elif pos_value > target_pos_value * 1.03:
             sell_amount = (pos_value - target_pos_value) / self.ticker['bid']
             await self.sell_all(symbol, sell_amount)
-
-
-
-
-
-
-
-
-
-
+        self.rebalance_time = int(time.time())
 
     # 异常处理
     async def run(self, func, *args, **kwargs):
@@ -315,8 +332,8 @@ class exchange_base:
                 err = 0
             except ccxt.RequestTimeout:
                 err_timeout = err_timeout + 1
-                self.logger.error(traceback.format_exc())
-                time.sleep(10)
+                self.logger.info(traceback.format_exc())
+                time.sleep(30)
             except ccxt.DDoSProtection:
                 err_ddos = err_ddos + 1
                 self.logger.error(traceback.format_exc())
@@ -330,7 +347,7 @@ class exchange_base:
             except ccxt.ExchangeNotAvailable:
                 err_not_available = err_not_available + 1
                 self.logger.error(traceback.format_exc())
-                time.sleep(5)
+                time.sleep(30)
                 if err_not_available > 5:
                     break
             except ccxt.ExchangeError:
@@ -355,9 +372,6 @@ class exchange_base:
         if not self.ex is None:
             await self.ex.close()
         self.logger.debug(self.ex.id + ' run() end.')
-
-
-
 
     # 3角套利，查找可以套利的币
     async def triangle_find_best_profit(self, quote1 = "BTC", quote2 = "ETH"):
@@ -400,9 +414,6 @@ class exchange_base:
             #print(coin_eth, ': bids=', self.buy_1_price, '|asks=', self.sell_1_price, '|spread%=', round(self.slippage_ratio, 4))
             if abs(find_profit) > fee:
                 self.logger.info("%s \t %10.4f"%(find_coin, abs(find_profit) - fee))
-        
-
-
 
     # 找出 交易所共同支持的 交易对
     async def arbitrage_find_symbols(self, ids):

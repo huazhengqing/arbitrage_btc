@@ -46,13 +46,14 @@ class stat_arbitrage():
         # 2: long spread2(buy exchange1, sell exchange2)
         self.current_position_direction = 0
 
-        self.spread1_pos_qty = 0
-        self.spread2_pos_qty = 0
+        self.spread1_pos_amount = 0
+        self.spread2_pos_amount = 0
 
         # 交易相关参数
         self.spread_entry_threshold = 0.0200    # 价格相差达到 % ，才下单搬砖，必需大于手续费
         self.order_book_ratio = 0.25  # 并不是所有挂单都能成交，每次预计能吃到的盘口深度的百分比
         self.max_exposure_ratio = 0.1    # 每次下单，可以下单的数量，占最大数量的多少 %
+        self.amount_min = 0     # 最小交易量
 
         self.rebalance_set(0.0)
 
@@ -135,7 +136,7 @@ class stat_arbitrage():
         await self.ex1.fetch_balance()
         await self.ex2.fetch_balance()
 
-        self.init_spread_qty()
+        self.init_spread_amount()
 
         # 数据不足，不计算, 等待足够的数据
         while len(self.spread1List) < self.sma_window_size or len(self.spread2List) < self.sma_window_size:
@@ -149,10 +150,10 @@ class stat_arbitrage():
         self.spread2_mean = np.mean(self.spread2List[-1 * self.sma_window_size:])
         self.spread2_stdev = np.std(self.spread2List[-1 * self.sma_window_size:])
 
-    def init_spread_qty(self):
-        if self.spread1_pos_qty > 0:
+    def init_spread_amount(self):
+        if self.spread1_pos_amount > 0:
             self.current_position_direction = 1
-        elif self.spread2_pos_qty > 0:
+        elif self.spread2_pos_amount > 0:
             self.current_position_direction = 2
         else:
             self.current_position_direction = 0
@@ -171,8 +172,8 @@ class stat_arbitrage():
         # 2: long spread2( buy huobi, sell okcoin), 
         # 0: no position
         self.current_position_direction = 0  
-        self.spread1_pos_qty = 0
-        self.spread2_pos_qty = 0
+        self.spread1_pos_amount = 0
+        self.spread2_pos_amount = 0
 
     # 判断开仓、平仓
     def calc_position_direction(self):
@@ -209,6 +210,7 @@ class stat_arbitrage():
 
     async def run_mm(self):
         await self.init_data()
+        self.amount_min = max(self.ex1.ex.markets[self.symbol]['limits']['amount']['min'], self.ex2.ex.markets[self.symbol]['limits']['amount']['min'])
         while True:
             await self.ex1.fetch_balance()
             await self.ex2.fetch_balance()
@@ -216,9 +218,12 @@ class stat_arbitrage():
             # 取订单深度信息
             await self.fetch_order_book()
 
-            # 超过 3 秒钟没有收到新数据，等新数据
+            # 时间不同步，跳过 
+            if abs(self.ex1.order_book_time - self.ex2.order_book_time) > 10:
+                continue
+            # 时间太久，跳过
             cur_t = int(time.time())
-            timeout_warn = 3
+            timeout_warn = 10
             if self.ex1.order_book_time < cur_t - timeout_warn or self.ex2.order_book_time < cur_t - timeout_warn:
                 continue
 
@@ -234,7 +239,7 @@ class stat_arbitrage():
                 continue
 
             # 检查是否有机会
-            todo_qty = 0.0
+            todo_amount = 0.0
             position_direction = self.calc_position_direction()
             if position_direction == 0:
                 # 没有交易信号，继续=
@@ -245,35 +250,26 @@ class stat_arbitrage():
                     if not self.check_fees():
                         continue
                     # 计算第1次开仓数量
-                    todo_qty = min(self.ex1.buy_1_quantity, self.ex2.sell_1_quantity) * self.order_book_ratio
+                    todo_amount = min(self.ex1.buy_1_quantity, self.ex2.sell_1_quantity) * self.order_book_ratio
                 elif self.current_position_direction == 1:  # 当前long spread1
                     if not self.check_fees():
                         continue
                     # 已有仓位，计算加仓数量
-                    todo_qty = min(self.ex1.buy_1_quantity, self.ex2.sell_1_quantity) * self.order_book_ratio
+                    todo_amount = min(self.ex1.buy_1_quantity, self.ex2.sell_1_quantity) * self.order_book_ratio
                 elif self.current_position_direction == 2:  # 当前long spread2
                     # 另一个方向有仓位，计算可以减仓的数量
-                    depth_qty = min(self.ex1.buy_1_quantity, self.ex2.sell_1_quantity) * self.order_book_ratio
-                    todo_qty = min(depth_qty, self.spread2_pos_qty)
+                    depth_amount = min(self.ex1.buy_1_quantity, self.ex2.sell_1_quantity) * self.order_book_ratio
+                    todo_amount = min(depth_amount, self.spread2_pos_amount)
 
-                # 最大可以开多少仓位
-                can_op_qty_1 = self.ex1.balance_symbol1['free']
-                can_op_qty_2 = self.ex2.balance_symbol2['free'] / self.ex2.sell_1_price
-                if self.ex1.support_short:
-                    can_op_qty_1 = can_op_qty_1 + self.ex1.balance_symbol2['free'] / self.ex1.buy_1_price
-                if self.ex2.support_short:
-                    can_op_qty_2 = can_op_qty_2 + self.ex2.balance_symbol1['used']
-                qty_max = min(can_op_qty_1, can_op_qty_2)
-                # 每次最多只能买的数量, 暂定为最大交易量的  1/10
-                qty_by_cash_one = qty_max / 10
-                todo_qty = min(todo_qty, qty_by_cash_one)
-                
-                # 计算出的交易量 < 交易所要求的最小量
-                # 无法下单，忽略这次机会
-                if todo_qty < self.ex1.ex.markets[self.symbol]['limits']['amount']['min'] or todo_qty < self.ex2.ex.markets[self.symbol]['limits']['amount']['min']:
+                # 账户中的钱，最大可以开多少仓位
+                can_op_amount_1 = self.ex1.balance[self.base]['free']
+                can_op_amount_2 = self.ex2.balance[self.quote]['free'] / self.ex2.sell_1_price * 0.98
+                amount_max = min(can_op_amount_1, can_op_amount_2)
+                todo_amount = min(todo_amount, amount_max)
+                # 计算出的交易量 < 交易所要求的最小量 : 无法下单，忽略这次机会
+                if todo_amount <= self.amount_min:
                     continue
-                    
-                await self.do_order_spread1(todo_qty)
+                await self.do_order_spread1(todo_amount)
 
             elif position_direction == 2:
                 self.log(position_direction)
@@ -281,35 +277,30 @@ class stat_arbitrage():
                     if not self.check_fees():
                         continue
                     # 计算第1次开仓数量
-                    todo_qty = min(self.ex2.buy_1_quantity, self.ex1.sell_1_quantity) * self.order_book_ratio
+                    todo_amount = min(self.ex2.buy_1_quantity, self.ex1.sell_1_quantity) * self.order_book_ratio
                 elif self.current_position_direction == 2:  # 当前long spread2
                     if not self.check_fees():
                         continue
                     # 已有仓位，计算加仓数量
-                    todo_qty = min(self.ex2.buy_1_quantity, self.ex1.sell_1_quantity) * self.order_book_ratio
+                    todo_amount = min(self.ex2.buy_1_quantity, self.ex1.sell_1_quantity) * self.order_book_ratio
                 elif self.current_position_direction == 1:  # 当前long spread1
                     # 另一个方向有仓位，计算可以减仓的数量
-                    depth_qty = min(self.ex2.buy_1_quantity, self.ex1.sell_1_quantity) * self.order_book_ratio
-                    todo_qty = min(depth_qty, self.spread1_pos_qty)
+                    depth_amount = min(self.ex2.buy_1_quantity, self.ex1.sell_1_quantity) * self.order_book_ratio
+                    todo_amount = min(depth_amount, self.spread1_pos_amount)
 
-                # 最大可以开多少仓位
-                can_op_qty_1 = self.ex1.balance_symbol1['used'] + self.ex1.balance_symbol2['free'] / self.ex1.sell_1_price
-                can_op_qty_2 = self.ex2.balance_symbol1['free'] + self.ex2.balance_symbol2['free'] / self.ex2.buy_1_price
-                qty_max = min(can_op_qty_1, can_op_qty_2)
-                # 每次最多只能买的数量, 暂定为最大交易量的  1/10
-                qty_by_cash_one = qty_max / 10
-                todo_qty = min(todo_qty, qty_by_cash_one)
-                
-                # 计算出的交易量 < 交易所要求的最小量
-                # 无法下单，忽略这次机会
-                if todo_qty < self.ex1.ex.markets[self.symbol]['limits']['amount']['min'] or todo_qty < self.ex2.ex.markets[self.symbol]['limits']['amount']['min']:
+                # 账户中的钱，最大可以开多少仓位
+                can_op_amount_1 = self.ex1.balance[self.quote]['free'] / self.ex1.sell_1_price * 0.98
+                can_op_amount_2 = self.ex2.balance[self.base]['free']
+                amount_max = min(can_op_amount_1, can_op_amount_2)
+                todo_amount = min(todo_amount, amount_max)
+                # 计算出的交易量 < 交易所要求的最小量 : 无法下单，忽略这次机会
+                if todo_amount <= self.amount_min:
                     continue
+                await self.do_order_spread2(todo_amount)
 
-                await self.do_order_spread2(todo_qty)
-
-            if self.spread1_pos_qty > 0:
+            if self.spread1_pos_amount > 0:
                 self.current_position_direction = 1
-            elif self.spread2_pos_qty > 0:
+            elif self.spread2_pos_amount > 0:
                 self.current_position_direction = 2
             else:
                 self.current_position_direction = 0
@@ -325,18 +316,16 @@ class stat_arbitrage():
         self.logger.info(str_bz)
 
     # 先执行第1个交易所的下单，等交易结果
-    # 有交易所，只支持 limit order 
     async def do_order_spread1(self, amount):
         ret = await self.ex1.sell_cancel(self.ex1.symbol, amount)
         if ret['filled'] <= 0:    # 订单完全没有成交，等待下一次机会
             return
         # 第1交易所已下单成功，第2交易所下单
         await self.ex2.buy_all(self.ex2.symbol, ret['filled'])
-
         if self.current_position_direction == 0 or self.current_position_direction == 1:
-            self.spread1_pos_qty += ret['filled']
+            self.spread1_pos_amount += ret['filled']
         elif self.current_position_direction == 2:
-            self.spread2_pos_qty -= ret['filled']
+            self.spread2_pos_amount -= ret['filled']
 
     async def do_order_spread2(self, amount):
         ret = await self.ex2.sell_cancel(self.ex2.symbol, amount)
@@ -344,11 +333,10 @@ class stat_arbitrage():
             return
         # 第2交易所已下单成功，第1交易所下单
         await self.ex1.buy_all(self.ex1.symbol, ret['filled'])
-        
         if self.current_position_direction == 0 or self.current_position_direction == 2:
-            self.spread2_pos_qty += ret['filled']
+            self.spread2_pos_amount += ret['filled']
         elif self.current_position_direction == 1:
-            self.spread1_pos_qty -= ret['filled']
+            self.spread1_pos_amount -= ret['filled']
 
     # 异常处理
     async def run(self, func, *args, **kwargs):
@@ -409,9 +397,4 @@ class stat_arbitrage():
                 self.logger.error(traceback.format_exc())
                 break
         self.logger.debug('stat_arbitrage run() end.')
-
-
-
-
-
 

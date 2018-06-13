@@ -36,8 +36,8 @@ class stat_arbitrage():
         self.spread2_mean = None
         self.spread2_stdev = None
         
-        self.spread1_open_condition_stdev_coe = 2        # 价格超过方差多少倍，下单
-        self.spread2_open_condition_stdev_coe = 2
+        self.spread1_open_condition_stdev_coe = 2.0        # 价格超过方差多少倍，下单
+        self.spread2_open_condition_stdev_coe = 2.0
         self.spread1_close_condition_stdev_coe = 0.3        # 价格小于方差多少倍，可以考虑调整仓位
         self.spread2_close_condition_stdev_coe = 0.3
 
@@ -54,9 +54,7 @@ class stat_arbitrage():
         self.order_book_ratio = 0.25  # 并不是所有挂单都能成交，每次预计能吃到的盘口深度的百分比
         self.max_exposure_ratio = 0.1    # 每次下单，可以下单的数量，占最大数量的多少 %
 
-        # rebalance
-        self.auto_rebalance_on = True
-        self.rebalanced_position_proportion = 0.5
+        self.rebalance_set(0.0)
 
         self.logger = None
 
@@ -159,6 +157,23 @@ class stat_arbitrage():
         else:
             self.current_position_direction = 0
 
+    # 仓位 再平衡
+    def rebalance_set(self, rebalanced_position_proportion):
+        self.ex1.rebalanced_position_proportion = rebalanced_position_proportion
+        self.ex2.rebalanced_position_proportion = rebalanced_position_proportion
+
+    async def rebalance_position(self):
+        if self.ex1.rebalanced_position_proportion <= 0.0 or self.ex2.rebalanced_position_proportion <= 0.0:
+            return
+        await self.ex1.rebalance_position(self.symbol)
+        await self.ex2.rebalance_position(self.symbol)
+        # 1: long spread1(buy okcoin, sell huobi);  
+        # 2: long spread2( buy huobi, sell okcoin), 
+        # 0: no position
+        self.current_position_direction = 0  
+        self.spread1_pos_qty = 0
+        self.spread2_pos_qty = 0
+
     # 判断开仓、平仓
     def calc_position_direction(self):
         # 没有仓位
@@ -210,14 +225,13 @@ class stat_arbitrage():
             # 计算方差
             self.calc_sma_and_deviation()
 
-            '''
-            # 价格回归平均值
-            # 是否需要调整仓位 
+            # 价格回归平均值，平衡仓位
             if abs(self.spread1List[-1] - self.spread1_mean) / self.spread1_stdev < self.spread1_close_condition_stdev_coe:
+                self.rebalance_position()
                 continue
             if abs(self.spread2List[-1] - self.spread2_mean) / self.spread2_stdev < self.spread2_close_condition_stdev_coe:
+                self.rebalance_position()
                 continue
-            '''
 
             # 检查是否有机会
             todo_qty = 0.0
@@ -256,7 +270,7 @@ class stat_arbitrage():
                 
                 # 计算出的交易量 < 交易所要求的最小量
                 # 无法下单，忽略这次机会
-                if todo_qty < self.ex1.market['limits']['amount']['min'] or todo_qty < self.ex2.market['limits']['amount']['min']:
+                if todo_qty < self.ex1.ex.markets[self.symbol]['limits']['amount']['min'] or todo_qty < self.ex2.ex.markets[self.symbol]['limits']['amount']['min']:
                     continue
                     
                 await self.do_order_spread1(todo_qty)
@@ -288,7 +302,7 @@ class stat_arbitrage():
                 
                 # 计算出的交易量 < 交易所要求的最小量
                 # 无法下单，忽略这次机会
-                if todo_qty < self.ex1.market['limits']['amount']['min'] or todo_qty < self.ex2.market['limits']['amount']['min']:
+                if todo_qty < self.ex1.ex.markets[self.symbol]['limits']['amount']['min'] or todo_qty < self.ex2.ex.markets[self.symbol]['limits']['amount']['min']:
                     continue
 
                 await self.do_order_spread2(todo_qty)
@@ -335,42 +349,6 @@ class stat_arbitrage():
             self.spread2_pos_qty += ret['filled']
         elif self.current_position_direction == 1:
             self.spread1_pos_qty -= ret['filled']
-
-    # 再平衡仓位
-    def rebalance_position(self, price):
-        current_huobi_pos_value = self.ex1.balance[self.base]['free'] * price
-        target_huobi_pos_value = self.ex1.balance[self.quote]['free'] * self.rebalanced_position_proportion
-        if target_huobi_pos_value - current_huobi_pos_value > self.spread_pos_qty_minimum_size * price:  # need to buy
-            self.timeLog("触发再平衡信号，增加huobi仓位", level=logging.WARN)
-            self.buy_market(self.coinMarketType, str(target_huobi_pos_value - current_huobi_pos_value),
-                            exchange="huobi")
-        elif current_huobi_pos_value - target_huobi_pos_value > self.spread_pos_qty_minimum_size * price:  # need to sell
-            self.timeLog("触发再平衡信号，减小huobi仓位", level=logging.WARN)
-            self.sell_market(self.coinMarketType, str((current_huobi_pos_value - target_huobi_pos_value) / price),
-                             exchange="huobi")
-
-        current_okcoin_pos_value = accountInfo[
-                                       helper.coinTypeStructure[self.coinMarketType]["okcoin"]["coin_str"]] * price
-        target_okcoin_pos_value = accountInfo["okcoin_cny_net"] * self.rebalanced_position_proportion
-        if target_okcoin_pos_value - current_okcoin_pos_value > self.spread_pos_qty_minimum_size * price:  # need to buy
-            self.timeLog("触发再平衡信号，增加okcoin仓位", level=logging.WARN)
-            self.buy_market(self.coinMarketType, str(target_okcoin_pos_value - current_okcoin_pos_value),
-                            exchange="okcoin",
-                            sell_1_price=price)
-        elif current_okcoin_pos_value - target_okcoin_pos_value > self.spread_pos_qty_minimum_size * price:  # need to sell
-            self.timeLog("触发再平衡信号，减小okcoin仓位", level=logging.WARN)
-            self.sell_market(self.coinMarketType, str((current_okcoin_pos_value - target_okcoin_pos_value) / price),
-                             exchange="okcoin")
-
-        self.current_position_direction = 0  # 1: long spread1(buy okcoin, sell huobi);  2: long spread2( buy huobi, sell okcoin), 0: no position
-        self.spread1_pos_qty = 0
-        self.spread2_pos_qty = 0
-
-
-
-
-
-
 
     # 异常处理
     async def run(self, func, *args, **kwargs):
@@ -431,47 +409,6 @@ class stat_arbitrage():
                 self.logger.error(traceback.format_exc())
                 break
         self.logger.debug('stat_arbitrage run() end.')
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 

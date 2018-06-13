@@ -83,6 +83,9 @@ class exchange_base:
         self.symbol_cur = ''
         self.base_cur = ''
         self.quote_cur = ''
+
+        # 仓位再平衡
+        self.rebalanced_position_proportion = 0.5
         
         self.logger = None
 
@@ -264,6 +267,32 @@ class exchange_base:
         ret = await self.ex.create_order(symbol, 'market', 'sell', amount, None, {'leverage': 1})
         while ret['remaining'] > 0:
             ret = await self.ex.create_order(symbol, 'market', 'sell', ret['remaining'], None, {'leverage': 1})
+
+    # 仓位再平衡
+    async def rebalance_position(self, symbol):
+        if self.rebalanced_position_proportion <= 0.0:
+            return
+        self.set_symbol(symbol)
+        await self.fetch_ticker(symbol)
+        await self.fetch_balance()
+        pos_value = self.balance[self.base_cur]['free'] * self.ticker['bid']
+        total_pos = self.balance[self.quote_cur]['free'] + pos_value
+        target_pos_value = total_pos * self.rebalanced_position_proportion
+        if target_pos_value > pos_value + self.ex.markets[symbol]['limits']['amount']['min'] * self.ticker['ask']:  # need to buy
+            await self.buy_all(symbol, target_pos_value - pos_value)
+        elif pos_value > target_pos_value + self.ex.markets[symbol]['limits']['amount']['min'] * self.ticker['bid']:  # need to sell
+            sell_amount = (pos_value - target_pos_value) / self.ticker['bid']
+            await self.sell_all(symbol, sell_amount)
+
+
+
+
+
+
+
+
+
+
 
     # 异常处理
     async def run(self, func, *args, **kwargs):

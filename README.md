@@ -19,4 +19,3 @@ pip install --upgrade ccxt
 pip install --upgrade numpy
 pip install --upgrade cfscrape
 ```
-

@@ -84,8 +84,9 @@ class exchange_base:
         self.quote_cur = ''
 
         # 仓位再平衡
-        self.rebalanced_position_proportion = 0.5
+        self.rebalance_position_proportion = 0.5
         self.rebalance_time = 0
+        self.rebalance_position_threshold = 0.9
         
         self.logger = None
 
@@ -293,7 +294,8 @@ class exchange_base:
 
     # 仓位再平衡
     async def rebalance_position(self, symbol):
-        if self.rebalanced_position_proportion <= 0.0:
+        if self.rebalance_position_proportion <= 0.0:
+            #self.logger.debug('rebalance_position(); 1')
             return
         if int(time.time()) < self.rebalance_time + 60:
             return
@@ -303,10 +305,15 @@ class exchange_base:
         self.set_symbol(symbol)
         pos_value = self.balance[self.base_cur]['free'] * self.ticker['bid']
         total_value = self.balance[self.quote_cur]['free'] + pos_value
-        target_pos_value = total_value * self.rebalanced_position_proportion
+        if (pos_value / total_value) < self.rebalance_position_threshold:
+            #self.logger.debug('rebalance_position(); 2 ')
+            return
+        target_pos_value = total_value * self.rebalance_position_proportion
         if pos_value < target_pos_value * 0.97:
+            #self.logger.debug('rebalance_position(); 3 pos_value=' + pos_value)
             await self.buy_all(symbol, target_pos_value - pos_value)
         elif pos_value > target_pos_value * 1.03:
+            #self.logger.debug('rebalance_position(); 4 pos_value=' + pos_value)
             sell_amount = (pos_value - target_pos_value) / self.ticker['bid']
             await self.sell_all(symbol, sell_amount)
         self.rebalance_time = int(time.time())

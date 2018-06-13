@@ -9,6 +9,7 @@ dir_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.append(dir_root)
 import conf.conf
 import util.util
+import util.stat_arbitrage
 from util.exchange_base import exchange_base
 from util.db_symbol import db_symbol
 
@@ -62,7 +63,7 @@ for i in range(0, size):
 
 tasks = []
 for mm in mm_list:
-    tasks.append(asyncio.ensure_future(mm.run(mm.run_mm)))
+    tasks.append(asyncio.ensure_future(mm.run(mm.run_arbitrage)))
 
 pending = asyncio.Task.all_tasks()
 loop = asyncio.get_event_loop()

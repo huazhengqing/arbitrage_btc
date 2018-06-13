@@ -252,7 +252,14 @@ class exchange_base:
         ret = await self.ex.create_order(symbol, 'limit', 'buy', amount, price, {'leverage': 1})
         # 订单没有成交全部，剩下的订单取消
         if ret['remaining'] > 0:
-            await self.ex.cancel_order(ret['id'])
+            c = 0
+            while c < 5:
+                try:
+                    c = c + 1
+                    await self.ex.cancel_order(ret['id'])
+                    break
+                except:
+                    self.logger.error(traceback.format_exc())
         return ret
 
     async def sell_cancel(self, symbol, amount):
@@ -263,7 +270,14 @@ class exchange_base:
         ret = await self.ex.create_order(symbol, 'limit', 'sell', amount, price, {'leverage': 1})
         # 订单没有成交全部，剩下的订单取消
         if ret['remaining'] > 0:
-            await self.ex.cancel_order(ret['id'])
+            c = 0
+            while c < 5:
+                try:
+                    c = c + 1
+                    await self.ex.cancel_order(ret['id'])
+                    break
+                except:
+                    self.logger.error(traceback.format_exc())
         return ret
 
     # 有交易所，只支持 limit order 
@@ -272,24 +286,54 @@ class exchange_base:
             return
         #await self.fetch_order_book(symbol, 5)
         price = self.order_book[symbol]['asks'][0][0]
-        ret = await self.ex.create_order(symbol, 'limit', 'buy', amount, price, {'leverage': 1})
+        ret = None
+        c = 0
+        while c < 5:
+            try:
+                c = c + 1
+                ret = await self.ex.create_order(symbol, 'limit', 'buy', amount, price, {'leverage': 1})
+                break
+            except:
+                self.logger.error(traceback.format_exc())
+        c = 0
         while ret['remaining'] >= self.ex.markets[symbol]['limits']['amount']['min']:
-            price = self.order_book[symbol]['asks'][4][0]
-            ret = await self.ex.create_order(symbol, 'limit', 'buy', ret['remaining'], price, {'leverage': 1})
-            if ret['remaining'] >= self.ex.markets[symbol]['limits']['amount']['min']:
-                await self.fetch_order_book(symbol, 5)
+            try:
+                price = self.order_book[symbol]['asks'][4][0]
+                ret = await self.ex.create_order(symbol, 'limit', 'buy', ret['remaining'], price, {'leverage': 1})
+                if ret['remaining'] >= self.ex.markets[symbol]['limits']['amount']['min']:
+                    await self.fetch_order_book(symbol, 5)
+            except:
+                self.logger.error(traceback.format_exc())
+                c = c + 1
+                if c > 5:
+                    raise
 
     async def sell_all(self, symbol, amount):
         if amount <= 0.0:
             return
         #await self.fetch_order_book(symbol, 5)
         price = self.order_book[symbol]['bids'][0][0]
-        ret = await self.ex.create_order(symbol, 'limit', 'sell', amount, price, {'leverage': 1})
+        ret = None
+        c = 0
+        while c < 5:
+            try:
+                c = c + 1
+                ret = await self.ex.create_order(symbol, 'limit', 'sell', amount, price, {'leverage': 1})
+                break
+            except:
+                self.logger.error(traceback.format_exc())
+        c = 0
         while ret['remaining'] >= self.ex.markets[symbol]['limits']['amount']['min']:
-            price = self.order_book[symbol]['bids'][4][0]
-            ret = await self.ex.create_order(symbol, 'limit', 'sell', ret['remaining'], price, {'leverage': 1})
-            if ret['remaining'] >= self.ex.markets[symbol]['limits']['amount']['min']:
-                await self.fetch_order_book(symbol, 5)
+            try:
+                price = self.order_book[symbol]['bids'][4][0]
+                ret = await self.ex.create_order(symbol, 'limit', 'sell', ret['remaining'], price, {'leverage': 1})
+                if ret['remaining'] >= self.ex.markets[symbol]['limits']['amount']['min']:
+                    await self.fetch_order_book(symbol, 5)
+            except:
+                self.logger.error(traceback.format_exc())
+                c = c + 1
+                if c > 5:
+                    raise
 
     # 仓位再平衡
     async def rebalance_position(self, symbol):
@@ -313,6 +357,16 @@ class exchange_base:
             sell_amount = (pos_value - target_pos_value) / self.ticker['bid']
             await self.sell_all(symbol, sell_amount)
         self.rebalance_time = int(time.time())
+
+    # 评估账户 最小下注量
+    async def balance_amount_min(self, symbol):
+        await self.load_markets()
+        await self.fetch_balance()
+        await self.fetch_ticker(symbol)
+        self.set_symbol(symbol)
+        pos_value = self.balance[self.base_cur]['free'] * self.ticker['bid']
+        total_value = self.balance[self.quote_cur]['free'] + pos_value
+        return max(self.ex.markets[symbol]['limits']['amount']['min'] * 2, total_value * 0.01 / self.ticker['ask'])
 
     # 异常处理
     async def run(self, func, *args, **kwargs):

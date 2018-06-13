@@ -60,11 +60,8 @@ class stat_arbitrage():
         # 并不是所有挂单都能成交，每次预计能吃到的盘口深度的百分比
         self.order_book_ratio = 0.3
 
-        # 交易所允许的 最小交易量
+        # 评估 最小下注
         self.amount_min = 0.0
-
-        # 每次搬砖最多只搬 amount_min_multiplier 个最小交易量
-        self.amount_min_multiplier = 10.0
 
         # 仓位 再平衡，开关
         self.rebalance_on = False
@@ -142,8 +139,6 @@ class stat_arbitrage():
         self.ex1.check_symbol(self.symbol)
         await self.ex2.load_markets()
         self.ex2.check_symbol(self.symbol)
-
-        self.amount_min = max(self.ex1.ex.markets[self.symbol]['limits']['amount']['min'], self.ex2.ex.markets[self.symbol]['limits']['amount']['min'])
 
         self.fetch_history_data_from_db()
 
@@ -225,8 +220,9 @@ class stat_arbitrage():
             return True
         return False
 
-    async def run_mm(self):
+    async def run_arbitrage(self):
         await self.init_data()
+        self.amount_min = max(self.ex1.balance_amount_min(self.symbol), self.ex2.balance_amount_min(self.symbol))
         while True:
             await self.ex1.fetch_balance()
             await self.ex2.fetch_balance()
@@ -277,15 +273,15 @@ class stat_arbitrage():
                     depth_amount = min(self.ex1.buy_1_quantity, self.ex2.sell_1_quantity) * self.order_book_ratio
                     amount_todo = min(depth_amount, self.spread2_pos_amount)
 
-                # 每次搬砖最多只搬 amount_min_multiplier 个最小单位
-                if self.amount_min_multiplier >= 1.0:
-                    amount_todo = min(amount_todo, self.amount_min * self.amount_min_multiplier)
+                # 以最小单位下注
+                amount_todo = min(amount_todo, self.amount_min)
 
                 # 账户中的钱，最大可以开多少仓位
                 can_op_amount_1 = self.ex1.balance[self.base]['free']
                 can_op_amount_2 = self.ex2.balance[self.quote]['free'] / self.ex2.sell_1_price * 0.98
                 amount_max = min(can_op_amount_1, can_op_amount_2)
                 amount_todo = min(amount_todo, amount_max)
+
                 # 计算出的交易量 < 交易所要求的最小量 : 无法下单，忽略这次机会
                 if amount_todo <= self.amount_min:
                     continue
@@ -308,9 +304,8 @@ class stat_arbitrage():
                     depth_amount = min(self.ex2.buy_1_quantity, self.ex1.sell_1_quantity) * self.order_book_ratio
                     amount_todo = min(depth_amount, self.spread1_pos_amount)
 
-                # 每次搬砖最多只搬 amount_min_multiplier 个最小单位
-                if self.amount_min_multiplier >= 1.0:
-                    amount_todo = min(amount_todo, self.amount_min * self.amount_min_multiplier)
+                # 以最小单位下注
+                amount_todo = min(amount_todo, self.amount_min)
 
                 # 账户中的钱，最大可以开多少仓位
                 can_op_amount_1 = self.ex1.balance[self.quote]['free'] / self.ex1.sell_1_price * 0.98

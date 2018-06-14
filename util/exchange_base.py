@@ -366,7 +366,8 @@ class exchange_base:
         self.set_symbol(symbol)
         pos_value = self.balance[self.base_cur]['free'] * self.ticker['bid']
         total_value = self.balance[self.quote_cur]['free'] + pos_value
-        return max(self.ex.markets[symbol]['limits']['amount']['min'] * 2, total_value * 0.01 / self.ticker['ask'])
+        total_amount = total_value / self.ticker['ask'] * 0.97
+        return max(self.ex.markets[symbol]['limits']['amount']['min'] * 2, total_amount * 0.01)
 
     # 异常处理
     async def run(self, func, *args, **kwargs):

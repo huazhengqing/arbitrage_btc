@@ -54,9 +54,6 @@ class stat_arbitrage():
         self.spread1_pos_amount = 0.0
         self.spread2_pos_amount = 0.0
 
-        # 价格相差达到 % ，才下单搬砖，必需大于手续费
-        self.spread_entry_threshold = 0.02
-
         # 并不是所有挂单都能成交，每次预计能吃到的盘口深度的百分比
         self.order_book_ratio = 0.3
 

@@ -1,10 +1,16 @@
 .vscode
 .idea
+
 logs/*
 db/*
-
 !.gitkeep
 !.gitignore
+
+
+protocol/gen-py
+protocol/gen-py.tornado
+protocol/gen-py.twisted
+
 
 tmp/
 .DS_Store

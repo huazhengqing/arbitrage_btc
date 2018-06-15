@@ -1,4 +1,4 @@
-## shadowsocks
+## ss
 
 - [shadowsocks](https://github.com/shadowsocks)
 - [shadowsocks clients](https://shadowsocks.org/en/download/clients.html)
@@ -8,6 +8,7 @@
 
 - [ccxt](https://github.com/ccxt/ccxt)
 - [Anaconda](https://www.anaconda.com/)
+- [redis](https://redis.io/)
 - [thrift](http://thrift.apache.org/)
 
 ```shell

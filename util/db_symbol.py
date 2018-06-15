@@ -95,6 +95,7 @@ class db_symbol:
         except Exception as e:
             s = util.util.to_str('fetch_one() sqlite3 err=', type(e).__name__, '=', e.args)
             self.logger.debug(s)
+            raise
         return None
 
     def fetch_one(self, ex_id, dt):
@@ -107,6 +108,7 @@ class db_symbol:
         except Exception as e:
             s = util.util.to_str('fetch_one() sqlite3 err=', type(e).__name__, '=', e.args)
             self.logger.debug(s)
+            raise
         return None
 
             

@@ -84,7 +84,10 @@ class stat_arbitrage():
         # 取最近的 sma_window_size 个k线
         from_dt = int(time.time()) - self.sma_window_size * 2
         for i in range(from_dt, from_dt + self.sma_window_size):
-            self.fetch_data_from_db(i)
+            try:
+                self.fetch_data_from_db(i)
+            except:
+                self.logger.debug(traceback.format_exc())
     
     # 从 db 中取1条指定时间的数据
     def fetch_data_from_db(self, sql_con_timestamp):
@@ -137,7 +140,10 @@ class stat_arbitrage():
         await self.ex2.load_markets()
         self.ex2.check_symbol(self.symbol)
 
-        self.fetch_history_data_from_db()
+        try:
+            self.fetch_history_data_from_db()
+        except:
+            self.logger.error(traceback.format_exc())
 
         await self.ex1.fetch_balance()
         await self.ex2.fetch_balance()

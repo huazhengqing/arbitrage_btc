@@ -52,7 +52,7 @@ class db_base:
     CREATE TABLE IF NOT EXISTS db_ticker.t_symbol_exchange(
         symbol TEXT NOT NULL,
         exchange TEXT NOT NULL,
-        dt DATETIME NOT NULL, 
+        dt INT UNSIGNED NOT NULL, 
         bid DECIMAL(20, 12), 
         ask DECIMAL(20, 12),
         PRIMARY KEY(symbol, exchange, dt)
@@ -69,7 +69,7 @@ class db_base:
         sql = "CREATE TABLE IF NOT EXISTS " + self.table + " ( \
             symbol TEXT NOT NULL, \
             exchange TEXT NOT NULL, \
-            dt DATETIME NOT NULL, \
+            dt INT UNSIGNED NOT NULL, \
             bid DECIMAL(20, 12), \
             ask DECIMAL(20, 12), \
             PRIMARY KEY(symbol, exchange, dt) \

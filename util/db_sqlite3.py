@@ -21,7 +21,7 @@ class db_sqlite3:
     def __init__(self, dir, db_name):
         self.dir = dir
         self.db_name = db_name
-        path = self.dir + self.db_name + '.sqlite3'
+        path = self.dir + self.db_name + '.sqlite'
         print(path)
         self.conn = sqlite3.connect(path)
         #self.conn = sqlite3.connect(':memory:')

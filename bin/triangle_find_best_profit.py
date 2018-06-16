@@ -16,7 +16,6 @@ conf_ids = ['binance', 'zb']
 
 async def triangle_find_best_profit(id):
     ex = exchange_base(util.util.get_exchange(id, False))
-    ex.init_log()
     await ex.run(ex.triangle_find_best_profit)
 
 

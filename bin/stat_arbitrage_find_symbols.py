@@ -16,7 +16,6 @@ conf_ids = ['binance', 'zb']
 
 async def arbitrage_find_symbols(ids):
     ex = exchange_base()
-    ex.init_log()
     await ex.arbitrage_find_symbols(ids)
 
 

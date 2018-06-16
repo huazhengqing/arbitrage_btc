@@ -10,9 +10,10 @@ import traceback
 import multiprocessing
 import numpy as np
 import ccxt.async as ccxt
-
 import conf.conf
 import util.util
+
+logger = util.util.get_log(__name__)
 
 
 class exchange_base:
@@ -87,25 +88,12 @@ class exchange_base:
         self.rebalance_position_proportion = 0.5
         self.rebalance_time = 0
         
-        self.logger = None
-
+        
     '''
     async def __del__(self):
         if not self.ex is None:
             await self.ex.close()
     '''
-
-    def init_log(self, name = __name__):
-        self.logger = logging.getLogger(__name__)
-        formatter = logging.Formatter('%(asctime)s - %(filename)s[line:%(lineno)d] - %(levelname)-8s: %(message)s')
-        file_handler = logging.FileHandler(conf.conf.dir_log + name + "_{0}.log".format(int(time.time())), mode="w", encoding="utf-8")
-        file_handler.setFormatter(formatter)
-        file_handler.setLevel(logging.DEBUG)
-        console_handler = logging.StreamHandler(sys.stdout)
-        console_handler.formatter = formatter
-        self.logger.addHandler(file_handler)
-        self.logger.addHandler(console_handler)
-        self.logger.setLevel(logging.INFO)
 
     def set_symbol(self, symbol):
         self.symbol_cur = symbol         # BTC/USD
@@ -122,7 +110,7 @@ class exchange_base:
         if self.ex.markets is None:
             await self.ex.load_markets()
             self.fee_taker = max(self.ex.fees['trading']['taker'], self.fee_taker)
-            self.logger.debug(self.ex.id + ' symbols: ' + ', '.join(self.ex.symbols))
+            #logger.debug(self.ex.id + ' symbols: ' + ', '.join(self.ex.symbols))
         return self.ex.markets
 
     def check_symbol(self, symbol):
@@ -172,19 +160,6 @@ class exchange_base:
         self.ticker = await self.ex.fetch_ticker(symbol)
         self.ticker_time = int(time.time())
         return self.ticker
-
-    # 取 ticker 数据，存入 db 中
-    async def fetch_ticker_to_db(self, symbol, db):
-        await self.fetch_ticker(symbol)
-        db.add_bid_ask(self.ex.id, self.ticker_time, self.ticker['bid'], self.ticker['ask'])
-        s = util.util.to_str(symbol, self.ex.id, self.ticker_time, self.ticker['bid'], self.ticker['ask'])
-        self.logger.info(s)
-
-    async def init_db_table(self, symbol, db):
-        await self.load_markets()
-        self.check_symbol(symbol)
-        self.set_symbol(symbol)
-        db.create_table_exchange(self.ex.id)
 
     '''
     self.order_book[symbol]['bids'][0][0]    # buy_1_price
@@ -259,7 +234,7 @@ class exchange_base:
                     await self.ex.cancel_order(ret['id'])
                     break
                 except:
-                    self.logger.error(traceback.format_exc())
+                    logger.error(traceback.format_exc())
         return ret
 
     async def sell_cancel(self, symbol, amount):
@@ -277,7 +252,7 @@ class exchange_base:
                     await self.ex.cancel_order(ret['id'])
                     break
                 except:
-                    self.logger.error(traceback.format_exc())
+                    logger.error(traceback.format_exc())
         return ret
 
     # 有交易所，只支持 limit order 
@@ -294,7 +269,7 @@ class exchange_base:
                 ret = await self.ex.create_order(symbol, 'limit', 'buy', amount, price, {'leverage': 1})
                 break
             except:
-                self.logger.error(traceback.format_exc())
+                logger.error(traceback.format_exc())
         c = 0
         while ret['remaining'] >= self.ex.markets[symbol]['limits']['amount']['min']:
             try:
@@ -303,7 +278,7 @@ class exchange_base:
                 if ret['remaining'] >= self.ex.markets[symbol]['limits']['amount']['min']:
                     await self.fetch_order_book(symbol, 5)
             except:
-                self.logger.error(traceback.format_exc())
+                logger.error(traceback.format_exc())
                 c = c + 1
                 if c > 5:
                     raise
@@ -321,7 +296,7 @@ class exchange_base:
                 ret = await self.ex.create_order(symbol, 'limit', 'sell', amount, price, {'leverage': 1})
                 break
             except:
-                self.logger.error(traceback.format_exc())
+                logger.error(traceback.format_exc())
         c = 0
         while ret['remaining'] >= self.ex.markets[symbol]['limits']['amount']['min']:
             try:
@@ -330,7 +305,7 @@ class exchange_base:
                 if ret['remaining'] >= self.ex.markets[symbol]['limits']['amount']['min']:
                     await self.fetch_order_book(symbol, 5)
             except:
-                self.logger.error(traceback.format_exc())
+                logger.error(traceback.format_exc())
                 c = c + 1
                 if c > 5:
                     raise
@@ -338,7 +313,7 @@ class exchange_base:
     # 仓位再平衡
     async def rebalance_position(self, symbol):
         if self.rebalance_position_proportion <= 0.0:
-            #self.logger.debug('rebalance_position(); 1')
+            #logger.debug('rebalance_position(); 1')
             return
         if int(time.time()) < self.rebalance_time + 60:
             return
@@ -350,10 +325,10 @@ class exchange_base:
         total_value = self.balance[self.quote_cur]['free'] + pos_value
         target_pos_value = total_value * self.rebalance_position_proportion
         if pos_value < target_pos_value * 0.97:
-            #self.logger.debug('rebalance_position(); 3 pos_value=' + pos_value)
+            #logger.debug('rebalance_position(); 3 pos_value=' + pos_value)
             await self.buy_all(symbol, target_pos_value - pos_value)
         elif pos_value > target_pos_value * 1.03:
-            #self.logger.debug('rebalance_position(); 4 pos_value=' + pos_value)
+            #logger.debug('rebalance_position(); 4 pos_value=' + pos_value)
             sell_amount = (pos_value - target_pos_value) / self.ticker['bid']
             await self.sell_all(symbol, sell_amount)
         self.rebalance_time = int(time.time())
@@ -390,46 +365,46 @@ class exchange_base:
                 err = 0
             except ccxt.RequestTimeout:
                 err_timeout = err_timeout + 1
-                self.logger.info(traceback.format_exc())
+                logger.info(traceback.format_exc())
                 time.sleep(30)
             except ccxt.DDoSProtection:
                 err_ddos = err_ddos + 1
-                self.logger.error(traceback.format_exc())
+                logger.error(traceback.format_exc())
                 time.sleep(15)
             except ccxt.AuthenticationError:
                 err_auth = err_auth + 1
-                self.logger.error(traceback.format_exc())
+                logger.error(traceback.format_exc())
                 time.sleep(5)
                 if err_auth > 5:
                     break
             except ccxt.ExchangeNotAvailable:
                 err_not_available = err_not_available + 1
-                self.logger.error(traceback.format_exc())
+                logger.error(traceback.format_exc())
                 time.sleep(30)
                 if err_not_available > 5:
                     break
             except ccxt.ExchangeError:
                 err_exchange = err_exchange + 1
-                self.logger.error(traceback.format_exc())
+                logger.error(traceback.format_exc())
                 time.sleep(5)
                 if err_exchange > 5:
                     break
             except ccxt.NetworkError:
                 err_network = err_network + 1
-                self.logger.error(traceback.format_exc())
+                logger.error(traceback.format_exc())
                 time.sleep(5)
                 if err_network > 5:
                     break
             except Exception:
                 err = err + 1
-                self.logger.info(traceback.format_exc())
+                logger.info(traceback.format_exc())
                 break
             except:
-                self.logger.error(traceback.format_exc())
+                logger.error(traceback.format_exc())
                 break
         if not self.ex is None:
             await self.ex.close()
-        self.logger.debug(self.ex.id + ' run() end.')
+        logger.debug(self.ex.id + ' run() end.')
 
     # 3角套利，查找可以套利的币
     async def triangle_find_best_profit(self, quote1 = "BTC", quote2 = "ETH"):
@@ -471,7 +446,7 @@ class exchange_base:
             fee += self.slippage_ratio
             #print(coin_eth, ': bids=', self.buy_1_price, '|asks=', self.sell_1_price, '|spread%=', round(self.slippage_ratio, 4))
             if abs(find_profit) > fee:
-                self.logger.info("%s \t %10.4f"%(find_coin, abs(find_profit) - fee))
+                logger.info("%s \t %10.4f"%(find_coin, abs(find_profit) - fee))
 
     # 找出 交易所共同支持的 交易对
     async def arbitrage_find_symbols(self, ids):
@@ -485,15 +460,15 @@ class exchange_base:
         arbitrableSymbols = sorted([symbol for symbol in uniqueSymbols if allSymbols.count(symbol) > 1])
 
         s = util.util.to_str(' symbol          | ' + ''.join([' {:<15} | '.format(id) for id in ids]))
-        self.logger.info(s)
+        logger.info(s)
         s = util.util.to_str(''.join(['-----------------+-' for x in range(0, len(ids) + 1)]))
-        self.logger.info(s)
+        logger.info(s)
 
         for symbol in arbitrableSymbols:
             string = ' {:<15} | '.format(symbol)
             for id in ids:
                 string += ' {:<15} | '.format(id if symbol in exchanges[id].symbols else '')
-            self.logger.info(string)
+            logger.info(string)
 
 
 

@@ -10,19 +10,21 @@ import traceback
 import multiprocessing
 import numpy as np
 import ccxt.async as ccxt
-
 import conf.conf
 import util.util
+import util.db_base
 from util.exchange_base import exchange_base
+
+logger = util.util.get_log(__name__)
 
 
 # 搬砖
 class stat_arbitrage():
-    def __init__(self, symbol, exchange_base1, exchange_base2, db_symbol):
+    def __init__(self, symbol, exchange_base1, exchange_base2, db_base):
         self.symbol = symbol    # BTC/USD
         self.ex1 = exchange_base1
         self.ex2 = exchange_base2
-        self.db = db_symbol
+        self.db = db_base
 
         self.base = self.symbol.split('/')[0]   # BTC
         self.quote = self.symbol.split('/')[1]  # USD
@@ -63,19 +65,6 @@ class stat_arbitrage():
         # 仓位 再平衡，开关
         self.rebalance_on = False
 
-        self.logger = None
-
-    def init_log(self, name = __name__):
-        self.logger = logging.getLogger(__name__)
-        formatter = logging.Formatter('%(asctime)s - %(filename)s[line:%(lineno)d] - %(levelname)-8s: %(message)s')
-        file_handler = logging.FileHandler(conf.conf.dir_log + name + "_{0}.log".format(int(time.time())), mode="w", encoding="utf-8")
-        file_handler.setFormatter(formatter)
-        file_handler.setLevel(logging.DEBUG)
-        console_handler = logging.StreamHandler(sys.stdout)
-        console_handler.formatter = formatter
-        self.logger.addHandler(file_handler)
-        self.logger.addHandler(console_handler)
-        self.logger.setLevel(logging.INFO)
 
     # 刚启动时，没有k线数据，尝试从数据库中取数据
     def fetch_history_data_from_db(self):
@@ -87,12 +76,12 @@ class stat_arbitrage():
             try:
                 self.fetch_data_from_db(i)
             except:
-                self.logger.debug(traceback.format_exc())
+                logger.debug(traceback.format_exc())
     
     # 从 db 中取1条指定时间的数据
     def fetch_data_from_db(self, sql_con_timestamp):
-        rows1 = self.db.fetch_one(self.ex1.ex.id, sql_con_timestamp)
-        rows2 = self.db.fetch_one(self.ex2.ex.id, sql_con_timestamp)
+        rows1 = self.db.ticker_select(self.db.db_name, self.symbol, self.ex1.ex.id, sql_con_timestamp)
+        rows2 = self.db.ticker_select(self.db.db_name, self.symbol, self.ex2.ex.id, sql_con_timestamp)
         if rows1 is None or rows2 is None:
             return
         if len(rows1) >= 1:
@@ -143,7 +132,7 @@ class stat_arbitrage():
         try:
             self.fetch_history_data_from_db()
         except:
-            self.logger.error(traceback.format_exc())
+            logger.error(traceback.format_exc())
 
         await self.ex1.fetch_balance()
         await self.ex2.fetch_balance()
@@ -153,7 +142,7 @@ class stat_arbitrage():
         # 数据不足，不计算, 等待足够的数据
         while len(self.spread1List) < self.sma_window_size or len(self.spread2List) < self.sma_window_size:
             await self.fetch_order_book()
-            #self.logger.debug(self.symbol + ',' + self.ex1.ex.id + ',' + self.ex2.ex.id + ';data len=' + str(len(self.spread1List)))
+            #logger.debug(self.symbol + ',' + self.ex1.ex.id + ',' + self.ex2.ex.id + ';data len=' + str(len(self.spread1List)))
 
     # 计算移动平均
     def calc_sma_and_deviation(self):
@@ -196,12 +185,12 @@ class stat_arbitrage():
         if self.current_position_direction == 0:
             if (self.spread1List[-1] - self.spread1_mean) / self.spread1_stdev > self.spread1_open_condition_stdev_coe:
                 if (abs(self.spread1List[-1] - self.spread1_mean) / self.ex1.sell_1_price) < (self.ex1.fee_taker  + self.ex2.fee_taker) * 3:
-                    self.logger.debug('calc_position_direction() check_fees 1')
+                    logger.debug('calc_position_direction() check_fees 1')
                     return 0
                 return 1
             elif (self.spread2List[-1] - self.spread2_mean) / self.spread2_stdev > self.spread2_open_condition_stdev_coe:
                 if (abs(self.spread2List[-1] - self.spread2_mean) / self.ex1.buy_1_price) < (self.ex1.fee_taker  + self.ex2.fee_taker) * 3:
-                    self.logger.debug('calc_position_direction() check_fees 2')
+                    logger.debug('calc_position_direction() check_fees 2')
                     return 0
                 return 2
         # 已有仓位, 方向1 (sell exchange1, buy exchange2)
@@ -330,7 +319,7 @@ class stat_arbitrage():
             str_bz = str_bz + self.symbol + ';sell=' + str(self.ex1.buy_1_price) + ';buy=' + str(self.ex2.sell_1_price) + '\n'
         if position_direction == 2:
             str_bz = str_bz + self.symbol + ';buy=' + str(self.ex1.sell_1_price) + ';sell=' + str(self.ex2.buy_1_price)
-        self.logger.info(str_bz)
+        logger.info(str_bz)
 
     # 先执行第1个交易所的下单，等交易结果
     async def do_order_spread1(self, amount):
@@ -376,42 +365,85 @@ class stat_arbitrage():
                 err = 0
             except ccxt.RequestTimeout:
                 err_timeout = err_timeout + 1
-                self.logger.error(traceback.format_exc())
+                logger.error(traceback.format_exc())
                 time.sleep(10)
             except ccxt.DDoSProtection:
                 err_ddos = err_ddos + 1
-                self.logger.error(traceback.format_exc())
+                logger.error(traceback.format_exc())
                 time.sleep(15)
             except ccxt.AuthenticationError:
                 err_auth = err_auth + 1
-                self.logger.error(traceback.format_exc())
+                logger.error(traceback.format_exc())
                 time.sleep(5)
                 if err_auth > 5:
                     break
             except ccxt.ExchangeNotAvailable:
                 err_not_available = err_not_available + 1
-                self.logger.error(traceback.format_exc())
+                logger.error(traceback.format_exc())
                 time.sleep(5)
                 if err_not_available > 5:
                     break
             except ccxt.ExchangeError:
                 err_exchange = err_exchange + 1
-                self.logger.error(traceback.format_exc())
+                logger.error(traceback.format_exc())
                 time.sleep(5)
                 if err_exchange > 5:
                     break
             except ccxt.NetworkError:
                 err_network = err_network + 1
-                self.logger.error(traceback.format_exc())
+                logger.error(traceback.format_exc())
                 time.sleep(5)
                 if err_network > 5:
                     break
             except Exception:
                 err = err + 1
-                self.logger.info(traceback.format_exc())
+                logger.info(traceback.format_exc())
                 break
             except:
-                self.logger.error(traceback.format_exc())
+                logger.error(traceback.format_exc())
                 break
-        self.logger.debug('stat_arbitrage run() end.')
+        logger.debug('stat_arbitrage run() end.')
+
+
+
+
+
+
+
+
+
+############################################################################
+
+def do_stat_arbitrage(symbols, ids, db_base):
+    ex_list = []
+    for id in ids:
+        ex = exchange_base(util.util.get_exchange(id, True))
+        ex_list.append(ex)
+
+    pair_list = []
+    size = len(ex_list)
+    for i in range(0, size):
+        for j in range(0, size):
+            if j > i:
+                for symbol in symbols:
+                    pair = stat_arbitrage(symbol, ex_list[i], ex_list[j], db_base)
+                    pair_list.append(pair)
+
+    tasks = []
+    for pair in pair_list:
+        tasks.append(asyncio.ensure_future(pair.run(pair.run_arbitrage)))
+
+    pending = asyncio.Task.all_tasks()
+    loop = asyncio.get_event_loop()
+    loop.run_until_complete(asyncio.gather(*pending))
+
+
+
+
+
+
+
+
+
+
 

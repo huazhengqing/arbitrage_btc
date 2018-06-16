@@ -26,7 +26,10 @@ from ExchangeData.ttypes import *
 import conf.conf
 import util.util
 from util.exchange_base import exchange_base
-from util.db_symbol import db_symbol
+from util.exchange_data import exchange_data
+
+
+
 
 class ExchangeDataHandler(ExchangeData.Iface):
     def getTicker(self, ex_id, symbol):

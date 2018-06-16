@@ -13,8 +13,26 @@ import datetime
 import traceback
 import pandas as pd
 import ccxt.async as ccxt
-
 import conf.conf
+
+
+def get_log(name = __name__):
+    logger = logging.getLogger(name)
+    if logger.hasHandlers():
+        return logger
+    formatter = logging.Formatter('%(asctime)s - %(filename)s[line:%(lineno)d] - %(levelname)-8s: %(message)s')
+    file_handler = logging.FileHandler(conf.conf.dir_log + name + "_{0}.log".format(int(time.time())), mode="w", encoding="utf-8")
+    file_handler.setFormatter(formatter)
+    file_handler.setLevel(logging.DEBUG)
+    console_handler = logging.StreamHandler(sys.stdout)
+    console_handler.formatter = formatter
+    logger.addHandler(file_handler)
+    logger.addHandler(console_handler)
+    logger.setLevel(logging.DEBUG)
+    return logger
+
+logger = get_log(__name__)
+
 
 
 def get_exchange(id, use_key):

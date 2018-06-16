@@ -15,6 +15,9 @@ import conf.conf
 import util.util
 from util.exchange_base import exchange_base
 
+logger = util.util.get_log(__name__)
+
+
 
 """
 交易对：用一种资产（quote currency）去定价另一种资产（base currency）,比如用比特币（BTC）去定价莱特币（LTC），
@@ -26,16 +29,21 @@ from util.exchange_base import exchange_base
 当LTC对BTC的价格上涨时，同等单位的LTC能够兑换的BTC是增加的，而同等单位的BTC能够兑换的LTC是减少的。
 """
 class triangle(exchange_base):
-    """
-    base:  基准资产
-    quote:  定价资产
-    mid:  中间资产
-    """
+    '''
+    ['base=基准资产', 'quote=定价资产', 'mid=中间资产']
+    ['XXX', 'BTC/ETH/BNB/HT/OKB/', 'USDT/USD/CNY']
+    ['XXX', 'ETH/BNB/HT/OKB/', 'BTC']
+    ['XXX', 'BNB/HT/OKB/', 'ETH']
+    '''
     def __init__(self, exchange, base, quote, mid):
         exchange_base.__init__(self, exchange)
         self.base = base
         self.quote = quote
         self.mid = mid
+        if base in ['USD', 'USDT', 'BTC', 'CNY']:
+            self.base, self.mid = mid, base
+        if quote in ['USD', 'USDT', 'BTC', 'CNY']:
+            self.quote, self.mid = mid, quote
 
         # 滑点 百分比，方便计算
         self.slippage_base_quote = 0.002  
@@ -55,8 +63,6 @@ class triangle(exchange_base):
         self.base_mid_base_reserve = 0.0
         self.base_mid_mid_reserve = 0.0
 
-        exchange_base.init_log(self)
-
     async def run_strategy(self):
         await exchange_base.load_markets(self)
         exchange_base.check_symbol(self, util.util.get_symbol(self.base, self.quote))
@@ -68,21 +74,21 @@ class triangle(exchange_base):
         self.order_book = dict()
 
         cur_pair = util.util.get_symbol(self.base, self.quote)
-        self.logger.debug(cur_pair)
+        logger.debug(cur_pair)
         await exchange_base.fetch_order_book(self, cur_pair, 5)
         market_price_sell_1 = self.order_book[cur_pair]['asks'][0][0]
         market_price_buy_1 = self.order_book[cur_pair]['bids'][0][0]
         self.slippage_base_quote = (market_price_sell_1 - market_price_buy_1)/market_price_buy_1
 
         cur_pair = util.util.get_symbol(self.base, self.mid)
-        self.logger.debug(cur_pair)
+        logger.debug(cur_pair)
         await exchange_base.fetch_order_book(self, cur_pair, 5)
         base_mid_price_sell_1 = self.order_book[cur_pair]['asks'][0][0]
         base_mid_price_buy_1 = self.order_book[cur_pair]['bids'][0][0]
         self.slippage_base_mid = (base_mid_price_sell_1 - base_mid_price_buy_1)/base_mid_price_buy_1
 
         cur_pair = util.util.get_symbol(self.quote, self.mid)
-        self.logger.debug(cur_pair)
+        logger.debug(cur_pair)
         await exchange_base.fetch_order_book(self, cur_pair, 5)
         quote_mid_price_sell_1 = self.order_book[cur_pair]['asks'][0][0]
         quote_mid_price_buy_1 = self.order_book[cur_pair]['bids'][0][0]
@@ -104,13 +110,13 @@ class triangle(exchange_base):
         if (base_mid_price_buy_1 / quote_mid_price_sell_1 - market_price_sell_1)/market_price_sell_1 > self.sum_slippage_fee():
             d = (base_mid_price_buy_1 / quote_mid_price_sell_1 - market_price_sell_1)/market_price_sell_1
             s = self.ex.id + "正循环差价：{0},滑点+手续费:{1}".format(d, self.sum_slippage_fee())
-            self.logger.info(s)
+            logger.info(s)
             await self.pos_cycle(self.get_market_buy_size())
         # 检查逆循环套利
         elif (market_price_buy_1 - base_mid_price_sell_1 / quote_mid_price_buy_1)/market_price_buy_1 > self.sum_slippage_fee():
             d = (market_price_buy_1 - base_mid_price_sell_1 / quote_mid_price_buy_1)/market_price_buy_1
             s = "逆循环差价：{0},滑点+手续费:{1}".format(d, self.sum_slippage_fee())
-            self.logger.info(s)
+            logger.info(s)
             await self.neg_cycle(self.get_market_sell_size())
 
     def sum_slippage_fee(self):
@@ -145,7 +151,7 @@ class triangle(exchange_base):
         base_quote_off_reserve_buy_size = (self.balance[self.quote]['free'] - self.base_quote_quote_reserve) /  self.order_book[util.util.get_symbol(self.base, self.quote)]["asks"][0][0]
         quote_mid_off_reserve_buy_size = (self.balance[self.mid]['free'] - self.quote_mid_mid_reserve) / self.order_book[util.util.get_symbol(self.quote, self.mid)]["asks"][0][0] / self.order_book[util.util.get_symbol(self.base, self.quote)]["asks"][0][0]
         base_mid_off_reserve_sell_size = self.balance[self.base]['free'] - self.base_mid_base_reserve
-        self.logger.info("计算数量：{0}，{1}，{2}，{3}，{4}".format(
+        logger.info("计算数量：{0}，{1}，{2}，{3}，{4}".format(
             market_buy_size
             , base_mid_sell_size
             , base_quote_off_reserve_buy_size
@@ -181,7 +187,7 @@ class triangle(exchange_base):
         base_quote_off_reserve_sell_size = self.balance[self.base]['free'] - self.base_quote_base_reserve
         quote_mid_off_reserve_sell_size = (self.balance[self.quote]['free'] - self.quote_mid_quote_reserve) / self.order_book[util.util.get_symbol(self.base, self.quote)]["bids"][0][0]
         base_mid_off_reserve_buy_size = (self.balance[self.mid]['free'] - self.base_mid_mid_reserve) / self.order_book[util.util.get_symbol(self.base, self.mid)]["asks"][0][0]
-        self.logger.info("计算数量：{0}，{1}，{2}，{3}，{4}".format(
+        logger.info("计算数量：{0}，{1}，{2}，{3}，{4}".format(
             market_sell_size
             , base_mid_buy_size
             , base_quote_off_reserve_sell_size
@@ -239,9 +245,9 @@ class triangle(exchange_base):
     async def pos_cycle(self, market_buy_size):
         cur_pair = util.util.get_symbol(self.base, self.quote)
         if market_buy_size < self.ex.markets[cur_pair]['limits']['amount']['min']:
-            self.logger.info("下注数量 < 最小交易单位 size:{0}".format(market_buy_size))
+            logger.info("下注数量 < 最小交易单位 size:{0}".format(market_buy_size))
             return
-        self.logger.info("开始正循环套利 size:{0}".format(market_buy_size))
+        logger.info("开始正循环套利 size:{0}".format(market_buy_size))
         order_result = await self.ex.create_order(
             cur_pair
             , self.order_book[cur_pair]["asks"][0][0]
@@ -250,10 +256,10 @@ class triangle(exchange_base):
             , None
             , {'leverage': 1}
             )
-        self.logger.info("买入结果：{0}".format(order_result))
+        logger.info("买入结果：{0}".format(order_result))
         if order_result['filled'] <= 0:
             # 交易失败
-            self.logger.info("正循环交易失败，退出套利 {0}".format(order_result))
+            logger.info("正循环交易失败，退出套利 {0}".format(order_result))
             return
         # 获取真正成交量
         retry, already_hedged_amount = 0, 0.0
@@ -263,15 +269,15 @@ class triangle(exchange_base):
                 if order_result['remaining'] > 0:
                     await self.ex.cancel_order(order_result['id'])
             field_amount = float(order_result['filled'])
-            self.logger.info("field_amount:{0}{1}".format(field_amount,already_hedged_amount))
+            logger.info("field_amount:{0}{1}".format(field_amount,already_hedged_amount))
 
             if field_amount-already_hedged_amount < self.ex.markets[cur_pair]['limits']['amount']['min']:
-                self.logger.info("没有新的成功交易或者新成交数量太少")
+                logger.info("没有新的成功交易或者新成交数量太少")
                 retry += 1
                 continue
 
             # 开始对冲
-            self.logger.info("开始对冲，数量：{0}".format(field_amount - already_hedged_amount))
+            logger.info("开始对冲，数量：{0}".format(field_amount - already_hedged_amount))
             p1 = multiprocessing.Process(target=self.hedged_sell_cur_pair, args=(field_amount-already_hedged_amount, util.util.get_symbol(self.base, self.mid)))
             p1.start()
 
@@ -287,7 +293,7 @@ class triangle(exchange_base):
             if field_amount >= market_buy_size:  # 已经完成指定目标数量的套利
                 break
             retry += 1
-        self.logger.info("完成正循环套利")
+        logger.info("完成正循环套利")
 
     '''
     逆循环套利
@@ -299,9 +305,9 @@ class triangle(exchange_base):
     async def neg_cycle(self, market_sell_size):
         cur_pair = util.util.get_symbol(self.base, self.quote)
         if market_sell_size < self.ex.markets[cur_pair]['limits']['amount']['min']:
-            self.logger.info("下注数量 < 最小交易单位 size:{0}".format(market_sell_size))
+            logger.info("下注数量 < 最小交易单位 size:{0}".format(market_sell_size))
             return
-        self.logger.info("开始逆循环套利 size:{0}".format(market_sell_size))
+        logger.info("开始逆循环套利 size:{0}".format(market_sell_size))
         order_result = await self.ex.create_order(
             cur_pair
             , self.order_book[cur_pair]["bids"][0][0]
@@ -312,7 +318,7 @@ class triangle(exchange_base):
             )
         if order_result['filled'] <= 0:
             # 交易失败
-            self.logger.info("逆循环交易失败，退出套利 {0}".format(order_result))
+            logger.info("逆循环交易失败，退出套利 {0}".format(order_result))
             return
         # 获取真正成交量
         retry, already_hedged_amount = 0, 0.0
@@ -322,15 +328,15 @@ class triangle(exchange_base):
                 if order_result['remaining'] > 0:
                     await self.ex.cancel_order(order_result['id'])
             field_amount = float(order_result['filled'])
-            self.logger.info("field_amount:{0}{1}".format(field_amount, already_hedged_amount))
+            logger.info("field_amount:{0}{1}".format(field_amount, already_hedged_amount))
 
             if field_amount - already_hedged_amount < self.ex.markets[cur_pair]['limits']['amount']['min']:
-                self.logger.info("没有新的成功交易或者新成交数量太少")
+                logger.info("没有新的成功交易或者新成交数量太少")
                 retry += 1
                 continue
 
             # 开始对冲
-            self.logger.info("开始对冲，数量：{0}".format(field_amount - already_hedged_amount))
+            logger.info("开始对冲，数量：{0}".format(field_amount - already_hedged_amount))
             p1 = multiprocessing.Process(target=self.hedged_buy_cur_pair, args=(field_amount - already_hedged_amount, util.util.get_symbol(self.base, self.mid)))
             p1.start()
 
@@ -346,10 +352,10 @@ class triangle(exchange_base):
             if field_amount >= market_sell_size:  # 已经完成指定目标数量的套利
                 break
             retry += 1
-        self.logger.info("结束逆循环套利")
+        logger.info("结束逆循环套利")
 
     async def hedged_buy_cur_pair(self, buy_size, cur_pair):
-        self.logger.info("开始买入{0}".format(cur_pair))
+        logger.info("开始买入{0}".format(cur_pair))
         try:
             order_result = await self.ex.create_order(
                 cur_pair
@@ -360,11 +366,11 @@ class triangle(exchange_base):
                 , {'leverage': 1}
                 )
             hedged_amount = 0.0
-            self.logger.info("买入结果：{0}".format(order_result))
+            logger.info("买入结果：{0}".format(order_result))
 
             if order_result['filled'] <= 0:
                 # 交易失败
-                self.logger.info("买入{0} 交易失败 {1}".format(cur_pair, order_result))
+                logger.info("买入{0} 交易失败 {1}".format(cur_pair, order_result))
             if order_result['remaining'] > 0:
                 await self.ex.cancel_order(order_result['id'])      # 取消未成交的order
             hedged_amount = float(order_result['filled'])
@@ -380,13 +386,13 @@ class triangle(exchange_base):
                     , None
                     , {'leverage': 1}
                     )
-                self.logger.info(market_order_result)
+                logger.info(market_order_result)
         except:
-            self.logger.error(traceback.format_exc())
-        self.logger.info("结束买入{0}".format(cur_pair))
+            logger.error(traceback.format_exc())
+        logger.info("结束买入{0}".format(cur_pair))
 
     async def hedged_sell_cur_pair(self, sell_size, cur_pair):
-        self.logger.info("开始卖出{0}".format(cur_pair))
+        logger.info("开始卖出{0}".format(cur_pair))
         try:
             order_result = await self.ex.create_order(
                 cur_pair
@@ -397,10 +403,10 @@ class triangle(exchange_base):
                 , {'leverage': 1}
                 )
             hedged_amount = 0.0
-            self.logger.info("卖出结果：{0}".format(order_result))
+            logger.info("卖出结果：{0}".format(order_result))
             if order_result['filled'] <= 0:
                 # 交易失败
-                self.logger.info("卖出{0} 交易失败  {1}".format(cur_pair, order_result))
+                logger.info("卖出{0} 交易失败  {1}".format(cur_pair, order_result))
             if order_result['remaining'] > 0:
                 await self.ex.cancel_order(order_result['id'])      # 取消未成交的order
             hedged_amount = float(order_result['filled'])
@@ -416,10 +422,10 @@ class triangle(exchange_base):
                     , None
                     , {'leverage': 1}
                     )
-                self.logger.info(market_order_result)
+                logger.info(market_order_result)
         except:
-            self.logger.error(traceback.format_exc())
-        self.logger.info("结束卖出{0}".format(cur_pair))
+            logger.error(traceback.format_exc())
+        logger.info("结束卖出{0}".format(cur_pair))
 
 
 

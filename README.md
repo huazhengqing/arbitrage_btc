@@ -16,4 +16,6 @@ pip install --upgrade ccxt
 pip install --upgrade numpy
 pip install --upgrade cfscrape
 pip install --upgrade thrift
+pip install --upgrade PyMySQL
+pip install --upgrade DBUtils
 ```

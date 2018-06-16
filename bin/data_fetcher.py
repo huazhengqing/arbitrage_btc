@@ -1,27 +1,28 @@
 #!/usr/bin/python
 
+import io
 import os
 import sys
+import uuid
+import math
 import time
+import sqlite3
 import asyncio
-
+import logging
+import datetime
+import traceback
+import pandas as pd
+import ccxt.async as ccxt
 dir_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.append(dir_root)
-import conf.conf
 import util.util
-from util.exchange_base import exchange_base
-from util.db_symbol import db_symbol
+import util.exchange_data
+
+logger = util.util.get_log(__name__)
 
 
-symbol = "LTC/BTC"
-
-
-exchanges = [
-    'binance', 
-    ]
-    
-
-exchanges_btc_usd = [
+'''
+ids = [
     'binance', 
     'huobipro', 
     'bitfinex',     # 可空, 门槛 $10000
@@ -44,21 +45,13 @@ exchanges_btc_usd = [
     'wex',
     "zb", 
     ]
+'''
 
 
-db = db_symbol(symbol)
-db.init_log()
-
-async def fetch_ticker_to_db(symbol, id):
-    ex = exchange_base(util.util.get_exchange(id, False))
-    ex.init_log()
-    await ex.init_db_table(symbol, db)
-    await ex.run(ex.fetch_ticker_to_db, symbol, db)
+ids = ['binance', 'bittrex']
+symbols = ['LTC/BTC']
+util.exchange_data.ticker_fetch_to_db(ids, symbols)
 
 
-#[asyncio.ensure_future(fetch_ticker_to_db(symbol, id)) for id in exchanges]
-[asyncio.ensure_future(fetch_ticker_to_db(symbol, 'bittrex'))]
-pending = asyncio.Task.all_tasks()
-loop = asyncio.get_event_loop()
-loop.run_until_complete(asyncio.gather(*pending))
+
 

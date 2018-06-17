@@ -6,6 +6,7 @@ import sys
 import uuid
 import math
 import time
+import redis
 import sqlite3
 import asyncio
 import logging
@@ -50,7 +51,7 @@ ids = [
 
 ids = ['binance', 'bittrex']
 symbols = ['LTC/BTC']
-util.exchange_data.ticker_fetch_to_db(ids, symbols)
+util.exchange_data.ticker_fetch_to_sqlite(ids, symbols)
 
 
 

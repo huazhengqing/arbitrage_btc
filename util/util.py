@@ -13,6 +13,8 @@ import datetime
 import traceback
 import pandas as pd
 import ccxt.async as ccxt
+dir_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.append(dir_root)
 import conf.conf
 
 
@@ -31,9 +33,7 @@ def get_log(name = __name__):
     logger.addHandler(console_handler)
     logger.setLevel(logging.DEBUG)
     return logger
-
 logger = get_log(__name__)
-
 
 
 def get_exchange(id, use_key):

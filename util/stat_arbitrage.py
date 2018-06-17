@@ -10,11 +10,12 @@ import traceback
 import multiprocessing
 import numpy as np
 import ccxt.async as ccxt
+dir_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.append(dir_root)
 import conf.conf
 import util.util
 import util.db_base
 from util.exchange_base import exchange_base
-
 logger = util.util.get_log(__name__)
 
 

@@ -13,7 +13,6 @@ dir_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.append(dir_root)
 import conf.conf
 import util.util
-
 logger = util.util.get_log(__name__)
 
 
@@ -32,19 +31,20 @@ class db_mysql():
 
     def get_conn(self):
         if db_mysql.__pool is None:
-            __pool = DBUtils.PooledDB(creator = pymysql,
-                              mincached = self.mincached,
-                              maxcached = self.maxcached,
-                              host = self.db_host,
-                              port = self.db_port,
-                              user = self.user,
-                              passwd = self.password,
-                              db = self.db,
-                              use_unicode = False,
-                              charset = "utf8",
-                              cursorclass = pymysql.cursors)
+            db_mysql.__pool = DBUtils.PooledDB(creator = pymysql,
+                mincached = self.mincached,
+                maxcached = self.maxcached,
+                host = self.db_host,
+                port = self.db_port,
+                user = self.user,
+                passwd = self.password,
+                db = self.db,
+                use_unicode = False,
+                charset = "utf8",
+                cursorclass = pymysql.cursors
+                )
         if self.conn is None:
-            self.conn = __pool.connection()
+            self.conn = db_mysql.__pool.connection()
         if self.cursor is None:
             self.cursor = self.conn.cursor()
         if not self.cursor:

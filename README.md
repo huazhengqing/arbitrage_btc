@@ -18,4 +18,5 @@ pip install --upgrade cfscrape
 pip install --upgrade thrift
 pip install --upgrade PyMySQL
 pip install --upgrade DBUtils
+pip install --upgrade redis
 ```

@@ -3,26 +3,27 @@
 import os
 import sys
 import time
+import redis
 import asyncio
 import logging
 import traceback
 import ccxt.async as ccxt
 dir_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.append(dir_root)
-import util.util
 import conf.conf
-from util.exchange_base import exchange_base
+import util.util
+import util.exchange_base
 import util.db_base
 import util.db_mysql
 import util.db_sqlite3
-
+import util.db_redis
 logger = util.util.get_log(__name__)
 
 
-
+# 取公共数据
 class exchange_data:
     def __init__(self, id):
-        self.ex = exchange_base(util.util.get_exchange(id, False))
+        self.ex = util.exchange_base.exchange_base(util.util.get_exchange(id, False))
         self.db = util.db_base.db_base()
         self.db_name = ''
 
@@ -30,8 +31,31 @@ class exchange_data:
         self.db_name = db_name
         self.db.init_sqlite3(dir, self.db_name)
 
+    def init_mysql(self, host, port, user, password, db_name = None):
+        self.db_name = db_name
+        self.db.init_mysql(host, port, user, password, db_name)
+
+
     ##########################################################################
-    # ticker
+    # market mysql/sqlite
+
+
+
+
+
+
+
+    ##########################################################################
+    # 历史数据 mysql/sqlite
+
+
+
+
+
+
+
+    ##########################################################################
+    # ticker redis
     async def ticker_create_table(self, symbol):
         await self.ex.load_markets()
         self.ex.check_symbol(symbol)
@@ -47,6 +71,10 @@ class exchange_data:
         await self.ex.run(self.ticker_fetch_to_db, symbol)
 
 
+    ##########################################################################
+    # orderbook redis
+
+
 
 
 
@@ -57,7 +85,7 @@ class exchange_data:
 ccxt.exchanges
 [LTC/BTC, ETH/BTC]
 '''
-def ticker_fetch_to_db(ids, symbols):
+def ticker_fetch_to_sqlite(ids, symbols):
     logger.debug(ids)
     logger.debug(symbols)
     tasks = []

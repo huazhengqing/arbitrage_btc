@@ -3,15 +3,16 @@
 import os
 import sys
 import time
+import redis
 import logging
 import traceback
 dir_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.append(dir_root)
-import util.util
 import conf.conf
+import util.util
 import util.db_mysql
 import util.db_sqlite3
-
+import util.db_redis
 logger = util.util.get_log(__name__)
 
 
@@ -46,8 +47,48 @@ class db_base:
             for d in data:
                 self.execute(sql, d)
 
-    #####################################################################
-    # tciker
+    ##########################################################################
+    # market mysql/sqlite
+    '''
+    CREATE TABLE IF NOT EXISTS db_market.t_exchange_info(
+        exchange TEXT NOT NULL,
+        fee DOUBLE NOT NULL
+        );
+    CREATE TABLE IF NOT EXISTS db_market.t_exchange(
+        exchange TEXT NOT NULL,
+        symbol TEXT NOT NULL,
+        vol INT UNSIGNED NOT NULL, 
+        dt DATETIME NOT NULL,
+        PRIMARY KEY(exchange, symbol)
+        );
+    '''
+
+
+
+
+
+
+
+
+
+
+    ##########################################################################
+    # 历史数据 mysql/sqlite
+
+
+
+
+
+
+
+
+
+
+
+
+
+    ##########################################################################
+    # tciker redis
     '''
     CREATE TABLE IF NOT EXISTS db_ticker.t_symbol_exchange(
         symbol TEXT NOT NULL,
@@ -87,7 +128,9 @@ class db_base:
         sql = 'select * from ' + self.table + ' where  dt == ' + str(dt)
         return self.fetchall(sql)
 
-    #####################################################################
+    ##########################################################################
+    # orderbook redis
+
 
 
 

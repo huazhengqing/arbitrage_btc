@@ -54,10 +54,14 @@ class db_base:
         exchange TEXT NOT NULL,
         fee DOUBLE NOT NULL
         );
-    CREATE TABLE IF NOT EXISTS db_market.t_exchange(
+    CREATE TABLE IF NOT EXISTS db_markets.t_exchange(
         exchange TEXT NOT NULL,
         symbol TEXT NOT NULL,
         vol INT UNSIGNED NOT NULL, 
+        limits_amount_min DECIMAL(20, 12) UNSIGNED NOT NULL, 
+        limits_price_min DECIMAL(20, 12) UNSIGNED NOT NULL, 
+        precision_amount INT UNSIGNED NOT NULL, 
+        precision_price INT UNSIGNED NOT NULL, 
         dt DATETIME NOT NULL,
         PRIMARY KEY(exchange, symbol)
         );

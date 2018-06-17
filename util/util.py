@@ -89,15 +89,6 @@ def print_supported_exchanges():
     s = to_str('Supported exchanges:', ', '.join(ccxt.exchanges))
     print(s)
 
-def get_symbol(base, quote):
-    if base == "CNY":
-        return "{0}/{1}".format(quote, base)
-    if base == "USD":
-        return "{0}/{1}".format(quote, base)
-    if base == "USDT":
-        return "{0}/{1}".format(quote, base)
-    return "{0}/{1}".format(base, quote)
-
 def symbol_2_string(symbol):
     base = symbol.split('/')[0]       # BTC
     quote = symbol.split('/')[1]       # USD

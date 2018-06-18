@@ -93,8 +93,6 @@ class triangle(exchange_base):
         exchange_base.check_symbol(self, self.quote_mid)
 
         await exchange_base.fetch_balance(self)
-        
-        self.order_book = dict()
 
         await exchange_base.fetch_order_book(self, self.base_quote, 5)
         base_quote_ask_1 = self.order_book[self.base_quote]['asks'][0][0]
@@ -112,8 +110,10 @@ class triangle(exchange_base):
         self.slippage_quote_mid = (quote_mid_ask_1 - quote_mid_bid_1)/quote_mid_bid_1
 
         '''
-        三角套利的基本思路是，用两个市场（比如BTC/CNY，LTC/CNY）的价格（分别记为P1，P2），计算出一个公允的LTC/BTC价格（P2/P1），
+        3角套利原理: 
+        用两个市场（比如 BTC/USD，LTC/USD）的价格（分别记为P1，P2），计算出一个公允的 LTC/BTC 价格（P2/P1），
         如果该公允价格跟实际的LTC/BTC市场价格（记为P3）不一致，就产生了套利机会
+        当公允价和市场价的价差比例大于所有市场的费率总和再加上滑点总和时，做三角套利才是盈利的。
         
         对应的套利条件就是：
         ltc_cny_buy_1_price > btc_cny_sell_1_price*ltc_btc_sell_1_price*(1+btc_cny_slippage)*(1+ltc_btc_slippage) / [(1-btc_cny_fee)*(1-ltc_btc_fee)*(1-ltc_cny_fee)*(1-ltc_cny_slippage)]
@@ -218,19 +218,19 @@ class triangle(exchange_base):
     '''
     async def pos_cycle(self, base_quote_buy_amount):
         logger.debug("pos_cycle() start  {0}".format(base_quote_buy_amount))
-        ret = await self.buy_cancel(self.base_quote, base_quote_buy_amount)
+        ret = await exchange_base.buy_cancel(self, self.base_quote, base_quote_buy_amount)
         if ret['filled'] <= 0:
-            logger.debug("pos_cycle() ret['filled'] <= 0 {0}".format(ret))
+            logger.debug("pos_cycle() return ret['filled'] <= 0 {0}".format(ret))
             return
-        logger.debug("pos_cycle() ret['filled']= {0}".format(ret))
 
         logger.info("pos_cycle() 开始对冲，数量：{0}".format(ret['filled']))
-        p1 = multiprocessing.Process(target=self.hedged_sell, args=(ret['filled'], self.base_mid))
+        p1 = multiprocessing.Process(target=self.hedged_sell, args=(self.base_mid, ret['filled']))
         p1.start()
 
         # 直接从 ret 里面获取成交的 quote_cur 金额，然后对冲该金额
         quote_to_be_hedged = ret['filled'] * ret['price']
-        p2 = multiprocessing.Process(target=self.hedged_buy, args=(quote_to_be_hedged, self.quote_mid))
+        logger.debug("pos_cycle()  {0}={1}*{2}".format(quote_to_be_hedged, ret['filled'], ret['price']))
+        p2 = multiprocessing.Process(target=self.hedged_buy, args=(self.quote_mid, quote_to_be_hedged))
         p2.start()
 
         p1.join()
@@ -243,45 +243,45 @@ class triangle(exchange_base):
     '''
     async def neg_cycle(self, base_quote_sell_amount):
         logger.debug("neg_cycle() start  {0}".format(base_quote_sell_amount))
-        ret = await self.sell_cancel(self.base_quote, base_quote_sell_amount)
+        ret = await exchange_base.sell_cancel(self, self.base_quote, base_quote_sell_amount)
         if ret['filled'] <= 0:
-            logger.debug("neg_cycle() ret['filled'] <= 0 {0}".format(ret))
+            logger.debug("neg_cycle() return ret['filled'] <= 0 {0}".format(ret))
             return
-        logger.debug("neg_cycle() ret['filled']= {0}".format(ret))
 
         logger.info("neg_cycle() 开始对冲，数量：{0}".format(ret['filled']))
-        p1 = multiprocessing.Process(target=self.hedged_buy, args=(ret['filled'], self.base_mid))
+        p1 = multiprocessing.Process(target=self.hedged_buy, args=(self.base_mid, ret['filled']))
         p1.start()
 
         # 直接从 ret 里面获取成交的 quote_cur 金额，然后对冲该金额
         quote_to_be_hedged = ret['filled'] * ret['price']
-        p2 = multiprocessing.Process(target=self.hedged_sell, args=(quote_to_be_hedged, self.quote_mid))
+        logger.debug("neg_cycle()  {0}={1}*{2}".format(quote_to_be_hedged, ret['filled'], ret['price']))
+        p2 = multiprocessing.Process(target=self.hedged_sell, args=(self.quote_mid, quote_to_be_hedged))
         p2.start()
 
         p1.join()
         p2.join()
         logger.debug("neg_cycle() end")
 
-    async def hedged_buy(self, amount, symbol):
+    async def hedged_buy(self, symbol, amount):
         logger.debug("hedged_buy() start {0}:{1}".format(symbol, amount))
         try:
-            ret = await self.buy_cancel(symbol, amount)
+            ret = await exchange_base.buy_cancel(self, symbol, amount)
             if amount > ret['filled']:
-                await self.buy_all(symbol, amount - ret['filled'])
+                await exchange_base.buy_all(self, symbol, amount - ret['filled'])
         except:
             logger.error(traceback.format_exc())
         logger.debug("hedged_buy() end {0}:{1}".format(symbol, amount))
 
-    async def hedged_sell(self, amount, symbol):
+    async def hedged_sell(self, symbol, amount):
         logger.debug("hedged_sell() start {0}:{1}".format(symbol, amount))
         try:
-            ret = await self.sell_cancel(symbol, amount)
+            ret = await exchange_base.sell_cancel(self, symbol, amount)
             if amount > ret['filled']:
-                await self.sell_all(symbol, amount - ret['filled'])
+                await exchange_base.sell_all(self, symbol, amount - ret['filled'])
         except:
             logger.error(traceback.format_exc())
         logger.debug("hedged_sell() end {0}:{1}".format(symbol, amount))
-        
+
 
 
 

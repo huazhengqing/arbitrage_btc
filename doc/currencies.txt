@@ -1,0 +1,830 @@
+currencies={
+    'ADA': {
+        'id': 'ADA',
+        'numericId': None,
+        'code': 'ADA',
+        'precision': 8
+    },
+    'ADX': {
+        'id': 'ADX',
+        'numericId': None,
+        'code': 'ADX',
+        'precision': 8
+    },
+    'AE': {
+        'id': 'AE',
+        'numericId': None,
+        'code': 'AE',
+        'precision': 8
+    },
+    'AGI': {
+        'id': 'AGI',
+        'numericId': None,
+        'code': 'AGI',
+        'precision': 8
+    },
+    'AION': {
+        'id': 'AION',
+        'numericId': None,
+        'code': 'AION',
+        'precision': 8
+    },
+    'AMB': {
+        'id': 'AMB',
+        'numericId': None,
+        'code': 'AMB',
+        'precision': 8
+    },
+    'APPC': {
+        'id': 'APPC',
+        'numericId': None,
+        'code': 'APPC',
+        'precision': 8
+    },
+    'ARK': {
+        'id': 'ARK',
+        'numericId': None,
+        'code': 'ARK',
+        'precision': 8
+    },
+    'ARN': {
+        'id': 'ARN',
+        'numericId': None,
+        'code': 'ARN',
+        'precision': 8
+    },
+    'AST': {
+        'id': 'AST',
+        'numericId': None,
+        'code': 'AST',
+        'precision': 8
+    },
+    'BAT': {
+        'id': 'BAT',
+        'numericId': None,
+        'code': 'BAT',
+        'precision': 8
+    },
+    'BCD': {
+        'id': 'BCD',
+        'numericId': None,
+        'code': 'BCD',
+        'precision': 8
+    },
+    'BCH': {
+        'id': 'BCC',
+        'numericId': None,
+        'code': 'BCH',
+        'precision': 8
+    },
+    'BCN': {
+        'id': 'BCN',
+        'numericId': None,
+        'code': 'BCN',
+        'precision': 8
+    },
+    'BCPT': {
+        'id': 'BCPT',
+        'numericId': None,
+        'code': 'BCPT',
+        'precision': 8
+    },
+    'BLZ': {
+        'id': 'BLZ',
+        'numericId': None,
+        'code': 'BLZ',
+        'precision': 8
+    },
+    'BNB': {
+        'id': 'BNB',
+        'numericId': None,
+        'code': 'BNB',
+        'precision': 8
+    },
+    'BNT': {
+        'id': 'BNT',
+        'numericId': None,
+        'code': 'BNT',
+        'precision': 8
+    },
+    'BQX': {
+        'id': 'BQX',
+        'numericId': None,
+        'code': 'BQX',
+        'precision': 8
+    },
+    'BRD': {
+        'id': 'BRD',
+        'numericId': None,
+        'code': 'BRD',
+        'precision': 8
+    },
+    'BTC': {
+        'id': 'BTC',
+        'numericId': None,
+        'code': 'BTC',
+        'precision': 8
+    },
+    'BTG': {
+        'id': 'BTG',
+        'numericId': None,
+        'code': 'BTG',
+        'precision': 8
+    },
+    'BTS': {
+        'id': 'BTS',
+        'numericId': None,
+        'code': 'BTS',
+        'precision': 8
+    },
+    'CDT': {
+        'id': 'CDT',
+        'numericId': None,
+        'code': 'CDT',
+        'precision': 8
+    },
+    'CHAT': {
+        'id': 'CHAT',
+        'numericId': None,
+        'code': 'CHAT',
+        'precision': 8
+    },
+    'CLOAK': {
+        'id': 'CLOAK',
+        'numericId': None,
+        'code': 'CLOAK',
+        'precision': 8
+    },
+    'CMT': {
+        'id': 'CMT',
+        'numericId': None,
+        'code': 'CMT',
+        'precision': 8
+    },
+    'CND': {
+        'id': 'CND',
+        'numericId': None,
+        'code': 'CND',
+        'precision': 8
+    },
+    'CVC': {
+        'id': 'CVC',
+        'numericId': None,
+        'code': 'CVC',
+        'precision': 8
+    },
+    'DASH': {
+        'id': 'DASH',
+        'numericId': None,
+        'code': 'DASH',
+        'precision': 8
+    },
+    'DATA': {
+        'id': 'DATA',
+        'numericId': None,
+        'code': 'DATA',
+        'precision': 8
+    },
+    'DGD': {
+        'id': 'DGD',
+        'numericId': None,
+        'code': 'DGD',
+        'precision': 8
+    },
+    'DLT': {
+        'id': 'DLT',
+        'numericId': None,
+        'code': 'DLT',
+        'precision': 8
+    },
+    'DNT': {
+        'id': 'DNT',
+        'numericId': None,
+        'code': 'DNT',
+        'precision': 8
+    },
+    'EDO': {
+        'id': 'EDO',
+        'numericId': None,
+        'code': 'EDO',
+        'precision': 8
+    },
+    'ELF': {
+        'id': 'ELF',
+        'numericId': None,
+        'code': 'ELF',
+        'precision': 8
+    },
+    'ENG': {
+        'id': 'ENG',
+        'numericId': None,
+        'code': 'ENG',
+        'precision': 8
+    },
+    'ENJ': {
+        'id': 'ENJ',
+        'numericId': None,
+        'code': 'ENJ',
+        'precision': 8
+    },
+    'EOS': {
+        'id': 'EOS',
+        'numericId': None,
+        'code': 'EOS',
+        'precision': 8
+    },
+    'ETC': {
+        'id': 'ETC',
+        'numericId': None,
+        'code': 'ETC',
+        'precision': 8
+    },
+    'ETH': {
+        'id': 'ETH',
+        'numericId': None,
+        'code': 'ETH',
+        'precision': 8
+    },
+    'EVX': {
+        'id': 'EVX',
+        'numericId': None,
+        'code': 'EVX',
+        'precision': 8
+    },
+    'FUEL': {
+        'id': 'FUEL',
+        'numericId': None,
+        'code': 'FUEL',
+        'precision': 8
+    },
+    'FUN': {
+        'id': 'FUN',
+        'numericId': None,
+        'code': 'FUN',
+        'precision': 8
+    },
+    'GAS': {
+        'id': 'GAS',
+        'numericId': None,
+        'code': 'GAS',
+        'precision': 8
+    },
+    'GNT': {
+        'id': 'GNT',
+        'numericId': None,
+        'code': 'GNT',
+        'precision': 8
+    },
+    'GRS': {
+        'id': 'GRS',
+        'numericId': None,
+        'code': 'GRS',
+        'precision': 8
+    },
+    'GTO': {
+        'id': 'GTO',
+        'numericId': None,
+        'code': 'GTO',
+        'precision': 8
+    },
+    'GVT': {
+        'id': 'GVT',
+        'numericId': None,
+        'code': 'GVT',
+        'precision': 8
+    },
+    'GXS': {
+        'id': 'GXS',
+        'numericId': None,
+        'code': 'GXS',
+        'precision': 8
+    },
+    'HSR': {
+        'id': 'HSR',
+        'numericId': None,
+        'code': 'HSR',
+        'precision': 8
+    },
+    'ICN': {
+        'id': 'ICN',
+        'numericId': None,
+        'code': 'ICN',
+        'precision': 8
+    },
+    'ICX': {
+        'id': 'ICX',
+        'numericId': None,
+        'code': 'ICX',
+        'precision': 8
+    },
+    'INS': {
+        'id': 'INS',
+        'numericId': None,
+        'code': 'INS',
+        'precision': 8
+    },
+    'IOST': {
+        'id': 'IOST',
+        'numericId': None,
+        'code': 'IOST',
+        'precision': 8
+    },
+    'IOTA': {
+        'id': 'IOTA',
+        'numericId': None,
+        'code': 'IOTA',
+        'precision': 8
+    },
+    'IOTX': {
+        'id': 'IOTX',
+        'numericId': None,
+        'code': 'IOTX',
+        'precision': 8
+    },
+    'KMD': {
+        'id': 'KMD',
+        'numericId': None,
+        'code': 'KMD',
+        'precision': 8
+    },
+    'KNC': {
+        'id': 'KNC',
+        'numericId': None,
+        'code': 'KNC',
+        'precision': 8
+    },
+    'LEND': {
+        'id': 'LEND',
+        'numericId': None,
+        'code': 'LEND',
+        'precision': 8
+    },
+    'LINK': {
+        'id': 'LINK',
+        'numericId': None,
+        'code': 'LINK',
+        'precision': 8
+    },
+    'LOOM': {
+        'id': 'LOOM',
+        'numericId': None,
+        'code': 'LOOM',
+        'precision': 8
+    },
+    'LRC': {
+        'id': 'LRC',
+        'numericId': None,
+        'code': 'LRC',
+        'precision': 8
+    },
+    'LSK': {
+        'id': 'LSK',
+        'numericId': None,
+        'code': 'LSK',
+        'precision': 8
+    },
+    'LTC': {
+        'id': 'LTC',
+        'numericId': None,
+        'code': 'LTC',
+        'precision': 8
+    },
+    'LUN': {
+        'id': 'LUN',
+        'numericId': None,
+        'code': 'LUN',
+        'precision': 8
+    },
+    'MANA': {
+        'id': 'MANA',
+        'numericId': None,
+        'code': 'MANA',
+        'precision': 8
+    },
+    'MCO': {
+        'id': 'MCO',
+        'numericId': None,
+        'code': 'MCO',
+        'precision': 8
+    },
+    'MDA': {
+        'id': 'MDA',
+        'numericId': None,
+        'code': 'MDA',
+        'precision': 8
+    },
+    'MOD': {
+        'id': 'MOD',
+        'numericId': None,
+        'code': 'MOD',
+        'precision': 8
+    },
+    'MTH': {
+        'id': 'MTH',
+        'numericId': None,
+        'code': 'MTH',
+        'precision': 8
+    },
+    'MTL': {
+        'id': 'MTL',
+        'numericId': None,
+        'code': 'MTL',
+        'precision': 8
+    },
+    'NAV': {
+        'id': 'NAV',
+        'numericId': None,
+        'code': 'NAV',
+        'precision': 8
+    },
+    'NCASH': {
+        'id': 'NCASH',
+        'numericId': None,
+        'code': 'NCASH',
+        'precision': 8
+    },
+    'NEBL': {
+        'id': 'NEBL',
+        'numericId': None,
+        'code': 'NEBL',
+        'precision': 8
+    },
+    'NEO': {
+        'id': 'NEO',
+        'numericId': None,
+        'code': 'NEO',
+        'precision': 8
+    },
+    'NULS': {
+        'id': 'NULS',
+        'numericId': None,
+        'code': 'NULS',
+        'precision': 8
+    },
+    'NXS': {
+        'id': 'NXS',
+        'numericId': None,
+        'code': 'NXS',
+        'precision': 8
+    },
+    'OAX': {
+        'id': 'OAX',
+        'numericId': None,
+        'code': 'OAX',
+        'precision': 8
+    },
+    'OMG': {
+        'id': 'OMG',
+        'numericId': None,
+        'code': 'OMG',
+        'precision': 8
+    },
+    'ONT': {
+        'id': 'ONT',
+        'numericId': None,
+        'code': 'ONT',
+        'precision': 8
+    },
+    'OST': {
+        'id': 'OST',
+        'numericId': None,
+        'code': 'OST',
+        'precision': 8
+    },
+    'PIVX': {
+        'id': 'PIVX',
+        'numericId': None,
+        'code': 'PIVX',
+        'precision': 8
+    },
+    'POA': {
+        'id': 'POA',
+        'numericId': None,
+        'code': 'POA',
+        'precision': 8
+    },
+    'POE': {
+        'id': 'POE',
+        'numericId': None,
+        'code': 'POE',
+        'precision': 8
+    },
+    'POWR': {
+        'id': 'POWR',
+        'numericId': None,
+        'code': 'POWR',
+        'precision': 8
+    },
+    'PPT': {
+        'id': 'PPT',
+        'numericId': None,
+        'code': 'PPT',
+        'precision': 8
+    },
+    'QKC': {
+        'id': 'QKC',
+        'numericId': None,
+        'code': 'QKC',
+        'precision': 8
+    },
+    'QLC': {
+        'id': 'QLC',
+        'numericId': None,
+        'code': 'QLC',
+        'precision': 8
+    },
+    'QSP': {
+        'id': 'QSP',
+        'numericId': None,
+        'code': 'QSP',
+        'precision': 8
+    },
+    'QTUM': {
+        'id': 'QTUM',
+        'numericId': None,
+        'code': 'QTUM',
+        'precision': 8
+    },
+    'RCN': {
+        'id': 'RCN',
+        'numericId': None,
+        'code': 'RCN',
+        'precision': 8
+    },
+    'RDN': {
+        'id': 'RDN',
+        'numericId': None,
+        'code': 'RDN',
+        'precision': 8
+    },
+    'REP': {
+        'id': 'REP',
+        'numericId': None,
+        'code': 'REP',
+        'precision': 8
+    },
+    'REQ': {
+        'id': 'REQ',
+        'numericId': None,
+        'code': 'REQ',
+        'precision': 8
+    },
+    'RLC': {
+        'id': 'RLC',
+        'numericId': None,
+        'code': 'RLC',
+        'precision': 8
+    },
+    'RPX': {
+        'id': 'RPX',
+        'numericId': None,
+        'code': 'RPX',
+        'precision': 8
+    },
+    'SALT': {
+        'id': 'SALT',
+        'numericId': None,
+        'code': 'SALT',
+        'precision': 8
+    },
+    'SC': {
+        'id': 'SC',
+        'numericId': None,
+        'code': 'SC',
+        'precision': 8
+    },
+    'SKY': {
+        'id': 'SKY',
+        'numericId': None,
+        'code': 'SKY',
+        'precision': 8
+    },
+    'SNGLS': {
+        'id': 'SNGLS',
+        'numericId': None,
+        'code': 'SNGLS',
+        'precision': 8
+    },
+    'SNM': {
+        'id': 'SNM',
+        'numericId': None,
+        'code': 'SNM',
+        'precision': 8
+    },
+    'SNT': {
+        'id': 'SNT',
+        'numericId': None,
+        'code': 'SNT',
+        'precision': 8
+    },
+    'STEEM': {
+        'id': 'STEEM',
+        'numericId': None,
+        'code': 'STEEM',
+        'precision': 8
+    },
+    'STORJ': {
+        'id': 'STORJ',
+        'numericId': None,
+        'code': 'STORJ',
+        'precision': 8
+    },
+    'STORM': {
+        'id': 'STORM',
+        'numericId': None,
+        'code': 'STORM',
+        'precision': 8
+    },
+    'STRAT': {
+        'id': 'STRAT',
+        'numericId': None,
+        'code': 'STRAT',
+        'precision': 8
+    },
+    'SUB': {
+        'id': 'SUB',
+        'numericId': None,
+        'code': 'SUB',
+        'precision': 8
+    },
+    'SYS': {
+        'id': 'SYS',
+        'numericId': None,
+        'code': 'SYS',
+        'precision': 8
+    },
+    'THETA': {
+        'id': 'THETA',
+        'numericId': None,
+        'code': 'THETA',
+        'precision': 8
+    },
+    'TNB': {
+        'id': 'TNB',
+        'numericId': None,
+        'code': 'TNB',
+        'precision': 8
+    },
+    'TNT': {
+        'id': 'TNT',
+        'numericId': None,
+        'code': 'TNT',
+        'precision': 8
+    },
+    'TRIG': {
+        'id': 'TRIG',
+        'numericId': None,
+        'code': 'TRIG',
+        'precision': 8
+    },
+    'TRX': {
+        'id': 'TRX',
+        'numericId': None,
+        'code': 'TRX',
+        'precision': 8
+    },
+    'TUSD': {
+        'id': 'TUSD',
+        'numericId': None,
+        'code': 'TUSD',
+        'precision': 8
+    },
+    'USDT': {
+        'id': 'USDT',
+        'numericId': None,
+        'code': 'USDT',
+        'precision': 8
+    },
+    'VEN': {
+        'id': 'VEN',
+        'numericId': None,
+        'code': 'VEN',
+        'precision': 8
+    },
+    'VIA': {
+        'id': 'VIA',
+        'numericId': None,
+        'code': 'VIA',
+        'precision': 8
+    },
+    'VIB': {
+        'id': 'VIB',
+        'numericId': None,
+        'code': 'VIB',
+        'precision': 8
+    },
+    'VIBE': {
+        'id': 'VIBE',
+        'numericId': None,
+        'code': 'VIBE',
+        'precision': 8
+    },
+    'WABI': {
+        'id': 'WABI',
+        'numericId': None,
+        'code': 'WABI',
+        'precision': 8
+    },
+    'WAN': {
+        'id': 'WAN',
+        'numericId': None,
+        'code': 'WAN',
+        'precision': 8
+    },
+    'WAVES': {
+        'id': 'WAVES',
+        'numericId': None,
+        'code': 'WAVES',
+        'precision': 8
+    },
+    'WINGS': {
+        'id': 'WINGS',
+        'numericId': None,
+        'code': 'WINGS',
+        'precision': 8
+    },
+    'WPR': {
+        'id': 'WPR',
+        'numericId': None,
+        'code': 'WPR',
+        'precision': 8
+    },
+    'WTC': {
+        'id': 'WTC',
+        'numericId': None,
+        'code': 'WTC',
+        'precision': 8
+    },
+    'XEM': {
+        'id': 'XEM',
+        'numericId': None,
+        'code': 'XEM',
+        'precision': 8
+    },
+    'XLM': {
+        'id': 'XLM',
+        'numericId': None,
+        'code': 'XLM',
+        'precision': 8
+    },
+    'XMR': {
+        'id': 'XMR',
+        'numericId': None,
+        'code': 'XMR',
+        'precision': 8
+    },
+    'XRB': {
+        'id': 'NANO',
+        'numericId': None,
+        'code': 'XRB',
+        'precision': 8
+    },
+    'XRP': {
+        'id': 'XRP',
+        'numericId': None,
+        'code': 'XRP',
+        'precision': 8
+    },
+    'XVG': {
+        'id': 'XVG',
+        'numericId': None,
+        'code': 'XVG',
+        'precision': 8
+    },
+    'XZC': {
+        'id': 'XZC',
+        'numericId': None,
+        'code': 'XZC',
+        'precision': 8
+    },
+    'YOYOW': {
+        'id': 'YOYO',
+        'numericId': None,
+        'code': 'YOYOW',
+        'precision': 8
+    },
+    'ZEC': {
+        'id': 'ZEC',
+        'numericId': None,
+        'code': 'ZEC',
+        'precision': 8
+    },
+    'ZEN': {
+        'id': 'ZEN',
+        'numericId': None,
+        'code': 'ZEN',
+        'precision': 8
+    },
+    'ZIL': {
+        'id': 'ZIL',
+        'numericId': None,
+        'code': 'ZIL',
+        'precision': 8
+    },
+    'ZRX': {
+        'id': 'ZRX',
+        'numericId': None,
+        'code': 'ZRX',
+        'precision': 8
+    }
+}

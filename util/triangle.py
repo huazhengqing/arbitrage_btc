@@ -6,7 +6,9 @@ import time
 import logging
 import asyncio
 import traceback
+import threading
 import multiprocessing
+from concurrent.futures import ThreadPoolExecutor
 import ccxt.async as ccxt
 dir_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.append(dir_root)
@@ -16,6 +18,7 @@ import util.db_base
 import util.exchange_data
 from util.exchange_base import exchange_base
 logger = util.util.get_log(__name__)
+
 
 
 '''
@@ -86,6 +89,7 @@ class triangle(exchange_base):
         return "triangle[{0}][{1},{2},{3}] ".format(self.ex.id, self.base, self.quote, self.mid)
 
     async def run_strategy(self):
+        #logger.debug(self.to_string() + "run_strategy() start")
         await exchange_base.load_markets(self)
         exchange_base.check_symbol(self, self.base_quote)
         exchange_base.check_symbol(self, self.base_mid)
@@ -97,16 +101,19 @@ class triangle(exchange_base):
         base_quote_ask_1 = self.order_book[self.base_quote]['asks'][0][0]
         base_quote_bid_1 = self.order_book[self.base_quote]['bids'][0][0]
         self.slippage_base_quote = (base_quote_ask_1 - base_quote_bid_1)/base_quote_bid_1
+        logger.debug(self.to_string() + "run_strategy() slippage_base_quote={0}".format(self.slippage_base_quote))
 
         await exchange_base.fetch_order_book(self, self.base_mid, 5)
         base_mid_ask_1 = self.order_book[self.base_mid]['asks'][0][0]
         base_mid_bid_1 = self.order_book[self.base_mid]['bids'][0][0]
         self.slippage_base_mid = (base_mid_ask_1 - base_mid_bid_1)/base_mid_bid_1
+        logger.debug(self.to_string() + "run_strategy() slippage_base_mid={0}".format(self.slippage_base_mid))
 
         await exchange_base.fetch_order_book(self, self.quote_mid, 5)
         quote_mid_ask_1 = self.order_book[self.quote_mid]['asks'][0][0]
         quote_mid_bid_1 = self.order_book[self.quote_mid]['bids'][0][0]
         self.slippage_quote_mid = (quote_mid_ask_1 - quote_mid_bid_1)/quote_mid_bid_1
+        logger.debug(self.to_string() + "run_strategy() slippage_quote_mid={0}".format(self.slippage_quote_mid))
 
         '''
         3角套利原理: 
@@ -120,20 +127,21 @@ class triangle(exchange_base):
         (ltc_cny_buy_1_price/btc_cny_sell_1_price-ltc_btc_sell_1_price)/ltc_btc_sell_1_price > sum_slippage_fee
         基本意思就是：只有当公允价和市场价的价差比例大于所有市场的费率总和再加上滑点总和时，做三角套利才是盈利的。
         '''
-
         # 检查是否有套利空间
+        diff_price_pos = (base_mid_bid_1 / quote_mid_ask_1 - base_quote_ask_1)/base_quote_ask_1
+        diff_price_neg = (base_quote_bid_1 - base_mid_ask_1 / quote_mid_bid_1)/base_quote_bid_1
+        cost = self.sum_slippage_fee()
+        logger.debug(self.to_string() +  "run_strategy() 正循环差价={0}, 滑点+手续费={1}".format(diff_price_pos, cost))
+        logger.debug(self.to_string() +  "run_strategy() 逆循环差价={0}, 滑点+手续费={1}".format(diff_price_neg, cost))
         # 检查正循环套利
-        if (base_mid_bid_1 / quote_mid_ask_1 - base_quote_ask_1)/base_quote_ask_1 > self.sum_slippage_fee():
-            d = (base_mid_bid_1 / quote_mid_ask_1 - base_quote_ask_1)/base_quote_ask_1
-            s = self.to_string() +  "run_strategy() 正循环差价={0}, 滑点+手续费={1}".format(d, self.sum_slippage_fee())
-            logger.debug(s)
+        if diff_price_pos > cost:
+            logger.info(self.to_string() +  "run_strategy() pos_cycle() 正循环差价={0}, 滑点+手续费={1}".format(diff_price_pos, cost))
             await self.pos_cycle(self.get_base_quote_buy_size())
         # 检查逆循环套利
-        elif (base_quote_bid_1 - base_mid_ask_1 / quote_mid_bid_1)/base_quote_bid_1 > self.sum_slippage_fee():
-            d = (base_quote_bid_1 - base_mid_ask_1 / quote_mid_bid_1)/base_quote_bid_1
-            s = self.to_string() +  "run_strategy() 逆循环差价={0}, 滑点+手续费={1}".format(d, self.sum_slippage_fee())
-            logger.debug(s)
+        elif diff_price_neg > cost:
+            logger.info(self.to_string() +  "run_strategy() neg_cycle() 逆循环差价={0}, 滑点+手续费={1}".format(diff_price_neg, cost))
             await self.neg_cycle(self.get_base_quote_sell_size())
+        #logger.debug(self.to_string() + "run_strategy() end")
 
     def sum_slippage_fee(self):
         return self.slippage_base_quote + self.slippage_base_mid + self.slippage_quote_mid + self.fee_taker * 3
@@ -223,27 +231,16 @@ class triangle(exchange_base):
             logger.debug(self.to_string() + "pos_cycle({0}) return ret['filled'] <= 0 ret={1}".format(base_quote_buy_amount, ret))
             return
         quote_to_be_hedged = ret['filled'] * ret['price']
-        '''
         logger.debug(self.to_string() + "pos_cycle({0}) Process hedged_sell({1}, {2})".format(base_quote_buy_amount, self.base_mid, ret['filled']))
-        p1 = multiprocessing.Process(target=self.hedged_sell, args=(self.base_mid, ret['filled']))
+        #p1 = multiprocessing.Process(target=self.hedged_sell, args=(self.base_mid, ret['filled']))
+        p1 = threading.Thread(target=self.thread_hedged_sell, args=(self.base_mid, ret['filled']))
         p1.start()
-
         logger.debug(self.to_string() + "pos_cycle({0}) Process hedged_buy({1}, {2}={3}*{4})".format(base_quote_buy_amount, self.quote_mid, quote_to_be_hedged, ret['filled'], ret['price']))
-        p2 = multiprocessing.Process(target=self.hedged_buy, args=(self.quote_mid, quote_to_be_hedged))
+        #p2 = multiprocessing.Process(target=self.hedged_buy, args=(self.quote_mid, quote_to_be_hedged))
+        p2 = threading.Thread(target=self.thread_hedged_buy, args=(self.quote_mid, quote_to_be_hedged))
         p2.start()
-
         p1.join()
         p2.join()
-        '''
-        tasks = []
-        logger.debug(self.to_string() + "pos_cycle({0}) tasks hedged_sell({1}, {2}) ".format(base_quote_buy_amount, self.base_mid, ret['filled']))
-        tasks.append(asyncio.ensure_future(self.hedged_sell(self.base_mid, ret['filled'])))
-        logger.debug(self.to_string() + "pos_cycle({0}) tasks hedged_buy({1}, {2}={3}*{4}) ".format(base_quote_buy_amount, self.quote_mid, quote_to_be_hedged, ret['filled'], ret['price']))
-        tasks.append(asyncio.ensure_future(self.hedged_buy(self.quote_mid, quote_to_be_hedged)))
-        pending = asyncio.Task.all_tasks()
-        loop = asyncio.get_event_loop()
-        loop.run_until_complete(asyncio.gather(*pending))
-
         logger.debug(self.to_string() + "pos_cycle({0}) end".format(base_quote_buy_amount))
 
     '''
@@ -258,27 +255,16 @@ class triangle(exchange_base):
             logger.debug(self.to_string() + "neg_cycle({0}) return ret['filled'] <= 0 ret={1}".format(base_quote_sell_amount, ret))
             return
         quote_to_be_hedged = ret['filled'] * ret['price']
-        '''
         logger.debug(self.to_string() + "neg_cycle({0}) hedged_buy({1}, {2}) Process".format(base_quote_sell_amount, self.base_mid, ret['filled']))
-        p1 = multiprocessing.Process(target=self.hedged_buy, args=(self.base_mid, ret['filled']))
+        #p1 = multiprocessing.Process(target=self.hedged_buy, args=(self.base_mid, ret['filled']))
+        p1 = threading.Thread(target=self.thread_hedged_buy, args=(self.base_mid, ret['filled']))
         p1.start()
-
         logger.debug(self.to_string() + "neg_cycle({0}) hedged_sell({1}, {2}={3}*{4}) Process".format(base_quote_sell_amount, self.quote_mid, quote_to_be_hedged, ret['filled'], ret['price']))
-        p2 = multiprocessing.Process(target=self.hedged_sell, args=(self.quote_mid, quote_to_be_hedged))
+        #p2 = multiprocessing.Process(target=self.hedged_sell, args=(self.quote_mid, quote_to_be_hedged))
+        p2 = threading.Thread(target=self.thread_hedged_sell, args=(self.quote_mid, quote_to_be_hedged))
         p2.start()
-
         p1.join()
         p2.join()
-        '''
-        tasks = []
-        logger.debug(self.to_string() + "neg_cycle({0}) tasks hedged_buy({1}, {2}) ".format(base_quote_sell_amount, self.base_mid, ret['filled']))
-        tasks.append(asyncio.ensure_future(self.hedged_buy(self.base_mid, ret['filled'])))
-        logger.debug(self.to_string() + "neg_cycle({0}) tasks hedged_sell({1}, {2}={3}*{4}) ".format(base_quote_sell_amount, self.quote_mid, quote_to_be_hedged, ret['filled'], ret['price']))
-        tasks.append(asyncio.ensure_future(self.hedged_sell(self.quote_mid, quote_to_be_hedged)))
-        pending = asyncio.Task.all_tasks()
-        loop = asyncio.get_event_loop()
-        loop.run_until_complete(asyncio.gather(*pending))
-
         logger.debug(self.to_string() + "neg_cycle({0}) end".format(base_quote_sell_amount))
 
     async def hedged_buy(self, symbol, amount):
@@ -297,6 +283,14 @@ class triangle(exchange_base):
         await exchange_base.buy_all(self, symbol, amount)
         logger.debug(self.to_string() + "hedged_buy({0}, {1}) end ".format(symbol, amount))
 
+    def thread_hedged_buy(self, symbol, amount):
+        logger.debug(self.to_string() + "thread_hedged_buy({0}, {1}) start ".format(symbol, amount))
+        loop2 = asyncio.new_event_loop()
+        task = loop2.create_task(self.hedged_buy(symbol, amount))  
+        loop2.run_until_complete(task)
+        loop2.close()
+        logger.debug(self.to_string() + "thread_hedged_buy({0}, {1}) end ".format(symbol, amount))
+
     async def hedged_sell(self, symbol, amount):
         logger.debug(self.to_string() + "hedged_sell({0}, {1}) start ".format(symbol, amount))
         '''
@@ -312,6 +306,15 @@ class triangle(exchange_base):
         logger.debug(self.to_string() + "hedged_sell({0}, {1}) sell_all({2}, {3})".format(symbol, amount, symbol, amount))
         await exchange_base.sell_all(self, symbol, amount)
         logger.debug(self.to_string() + "hedged_sell({0}, {1}) end ".format(symbol, amount))
+    
+    def thread_hedged_sell(self, symbol, amount):
+        logger.debug(self.to_string() + "thread_hedged_sell({0}, {1}) start ".format(symbol, amount))
+        loop2 = asyncio.new_event_loop()
+        task = loop2.create_task(self.hedged_sell(symbol, amount))  
+        loop2.run_until_complete(task)
+        loop2.close()
+        logger.debug(self.to_string() + "thread_hedged_sell({0}, {1}) end ".format(symbol, amount))
+    
 
 
 
@@ -328,9 +331,11 @@ def do_triangle(list_id_base_quote_mid):
         logger.info("do_triangle({0}) target={1}".format(list_id_base_quote_mid, target))
         t = triangle(util.util.get_exchange(target['id'], True), target['base'], target['quote'], target['mid'])
         tasks.append(asyncio.ensure_future(t.run(t.run_strategy)))
+    logger.info("do_triangle({0}) load all target".format(list_id_base_quote_mid))
     pending = asyncio.Task.all_tasks()
     loop = asyncio.get_event_loop()
     loop.run_until_complete(asyncio.gather(*pending))
+    loop.close()
     logger.info("do_triangle({0}) end".format(list_id_base_quote_mid))
 
 

@@ -1,0 +1,18 @@
+urls={
+    'logo': 'https: //user-images.githubusercontent.com/1294454/29604020-d5483cdc-87ee-11e7-94c7-d1a8d9169293.jpg',
+    'api': {
+        'web': 'https: //www.binance.com',
+        'wapi': 'https: //api.binance.com/wapi/v3',
+        'public': 'https: //api.binance.com/api/v1',
+        'private': 'https: //api.binance.com/api/v3',
+        'v3': 'https: //api.binance.com/api/v3',
+        'v1': 'https: //api.binance.com/api/v1'
+    },
+    'www': 'https: //www.binance.com',
+    'referral': 'https: //www.binance.com/?ref=10205187',
+    'doc': 'https: //github.com/binance-exchange/binance-official-api-docs/blob/master/rest-api.md',
+    'fees': [
+        'https: //binance.zendesk.com/hc/en-us/articles/115000429332',
+        'https: //support.binance.com/hc/en-us/articles/115000583311'
+    ]
+}

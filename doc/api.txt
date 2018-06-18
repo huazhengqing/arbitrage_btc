@@ -1,0 +1,67 @@
+api={
+    'web': {
+        'get': [
+            'exchange/public/product'
+        ]
+    },
+    'wapi': {
+        'post': [
+            'withdraw'
+        ],
+        'get': [
+            'depositHistory',
+            'withdrawHistory',
+            'depositAddress',
+            'accountStatus',
+            'systemStatus',
+            'withdrawFee'
+        ]
+    },
+    'v3': {
+        'get': [
+            'ticker/price',
+            'ticker/bookTicker'
+        ]
+    },
+    'public': {
+        'get': [
+            'exchangeInfo',
+            'ping',
+            'time',
+            'depth',
+            'aggTrades',
+            'klines',
+            'ticker/24hr',
+            'ticker/allPrices',
+            'ticker/allBookTickers',
+            'ticker/price',
+            'ticker/bookTicker',
+            'exchangeInfo'
+        ],
+        'put': [
+            'userDataStream'
+        ],
+        'post': [
+            'userDataStream'
+        ],
+        'delete': [
+            'userDataStream'
+        ]
+    },
+    'private': {
+        'get': [
+            'order',
+            'openOrders',
+            'allOrders',
+            'account',
+            'myTrades'
+        ],
+        'post': [
+            'order',
+            'order/test'
+        ],
+        'delete': [
+            'order'
+        ]
+    }
+}

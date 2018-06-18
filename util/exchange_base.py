@@ -111,15 +111,19 @@ class exchange_base:
     self.ex.markets['ETH/BTC']['precision']['price']    # 精度 2
     '''
     async def load_markets(self):
-        logger.debug(self.to_string() + "load_markets() start")
+        #logger.debug(self.to_string() + "load_markets() start")
         if self.ex.markets is None:
             await self.ex.load_markets()
-            logger.debug(self.to_string() + "load_markets() markets={0}".format(self.ex.markets))
-            logger.debug(self.to_string() + "load_markets() symbols={0}".format(self.ex.symbols))
-            #logger.debug(self.to_string() + 'load_markets() symbols=' + ','.join(self.ex.symbols))
+            #logger.debug(self.to_string() + "load_markets() markets={0}".format(self.ex.markets))
+            #logger.debug(self.to_string() + "load_markets() symbols={0}".format(self.ex.symbols))
+            #logger.debug(self.to_string() + "load_markets() fees={0}".format(self.ex.fees))
+            #logger.debug(self.to_string() + "load_markets() api={0}".format(self.ex.api))
+            #logger.debug(self.to_string() + "load_markets() has={0}".format(self.ex.has))
+            #logger.debug(self.to_string() + "load_markets() urls={0}".format(self.ex.urls))
+            #logger.debug(self.to_string() + "load_markets() currencies={0}".format(self.ex.currencies))
             self.fee_taker = max(self.ex.fees['trading']['taker'], self.fee_taker)
             logger.debug(self.to_string() + "load_markets() fee_taker={0}".format(self.fee_taker))
-        logger.debug(self.to_string() + "load_markets() end ")
+        #logger.debug(self.to_string() + "load_markets() end ")
         return self.ex.markets
 
     def check_symbol(self, symbol):
@@ -132,14 +136,15 @@ class exchange_base:
     self.balance['BTC']['total']
     '''
     async def fetch_balance(self):
-        logger.debug(self.to_string() + "fetch_balance() start")
+        #logger.debug(self.to_string() + "fetch_balance() start")
         p = {}
         if self.ex.id == 'binance':
             p = {
                 'recvWindow' : 60000,
             }
         self.balance = await self.ex.fetch_balance(p)
-        logger.debug(self.to_string() + "fetch_balance() end balance={0}".format(self.balance))
+        #logger.debug(self.to_string() + "fetch_balance() end balance={0}".format(self.balance))
+        #logger.debug(self.to_string() + "fetch_balance() end")
         return self.balance
 
     '''
@@ -167,11 +172,11 @@ class exchange_base:
     }
     '''
     async def fetch_ticker(self, symbol):
-        logger.debug(self.to_string() + "fetch_ticker({0}) start".format(symbol))
+        #logger.debug(self.to_string() + "fetch_ticker({0}) start".format(symbol))
         self.set_symbol(symbol)
         self.ticker = await self.ex.fetch_ticker(symbol)
         self.ticker_time = int(time.time())
-        logger.debug(self.to_string() + "fetch_ticker({0}) end ticker={1}".format(symbol, self.ticker))
+        #logger.debug(self.to_string() + "fetch_ticker({0}) end ticker={1}".format(symbol, self.ticker))
         return self.ticker
 
     '''
@@ -181,7 +186,7 @@ class exchange_base:
     self.order_book[symbol]['asks'][0][1]    # sell_1_quantity
     '''
     async def fetch_order_book(self, symbol, i = 5):
-        logger.debug(self.to_string() + "fetch_order_book({0}) start".format(symbol))
+        #logger.debug(self.to_string() + "fetch_order_book({0}) start".format(symbol))
         self.order_book[symbol] = await self.ex.fetch_order_book(symbol, i)
         self.order_book_time = int(time.time())
         self.buy_1_price = self.order_book[symbol]['bids'][0][0]
@@ -189,7 +194,7 @@ class exchange_base:
         self.slippage_value = self.sell_1_price - self.buy_1_price
         self.slippage_ratio = (self.sell_1_price - self.buy_1_price) / self.buy_1_price
         self.set_symbol(symbol)
-        logger.debug(self.to_string() + "fetch_order_book({0}) end order_book={1}".format(symbol, self.order_book))
+        #logger.debug(self.to_string() + "fetch_order_book({0}) end order_book[{1}]={2}".format(symbol, symbol, self.order_book[symbol]))
         return self.order_book
 
     '''
@@ -409,6 +414,7 @@ class exchange_base:
         err = 0
         while True:
             try:
+                logger.info(self.to_string() + "run() func")
                 await func(*args, **kwargs)
                 err_timeout = 0
                 err_ddos = 0

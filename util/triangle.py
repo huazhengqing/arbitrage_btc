@@ -52,14 +52,10 @@ class triangle(exchange_base):
         self.order_ratio_base_quote = 0.3
         self.order_ratio_base_mid = 0.3
 
-        # 余额预留数量
-        self.base_quote_quote_reserve = 0.0    
-        self.base_quote_base_reserve = 0.0
-        self.quote_mid_mid_reserve = 0.0
-        self.quote_mid_quote_reserve = 0.0
-        self.base_mid_base_reserve = 0.0
-        self.base_mid_mid_reserve = 0.0
-
+        # 能用来操作的数量，用作限制。0表示不限制
+        self.limit_base = 0.0
+        self.limit_quote = 0.0
+        self.limit_mid = 0.0
 
     '''
     ['base=基准资产', 'quote=定价资产', 'mid=中间资产']
@@ -85,6 +81,9 @@ class triangle(exchange_base):
                 raise Exception("check() base=" + base + ";quote=" + quote + ';mid=' + mid)
             return
         raise Exception("check() base=" + base + ";quote=" + quote + ';mid=' + mid)
+    
+    def to_string(self):
+        return "triangle[{0}][{1},{2},{3}] ".format(self.ex.id, self.base, self.quote, self.mid)
 
     async def run_strategy(self):
         await exchange_base.load_markets(self)
@@ -126,90 +125,90 @@ class triangle(exchange_base):
         # 检查正循环套利
         if (base_mid_bid_1 / quote_mid_ask_1 - base_quote_ask_1)/base_quote_ask_1 > self.sum_slippage_fee():
             d = (base_mid_bid_1 / quote_mid_ask_1 - base_quote_ask_1)/base_quote_ask_1
-            s = self.ex.id + "正循环差价：{0},滑点+手续费:{1}".format(d, self.sum_slippage_fee())
-            logger.info(s)
-            await self.pos_cycle(self.get_market_buy_size())
+            s = self.to_string() +  "run_strategy() 正循环差价={0}, 滑点+手续费={1}".format(d, self.sum_slippage_fee())
+            logger.debug(s)
+            await self.pos_cycle(self.get_base_quote_buy_size())
         # 检查逆循环套利
         elif (base_quote_bid_1 - base_mid_ask_1 / quote_mid_bid_1)/base_quote_bid_1 > self.sum_slippage_fee():
             d = (base_quote_bid_1 - base_mid_ask_1 / quote_mid_bid_1)/base_quote_bid_1
-            s = "逆循环差价：{0},滑点+手续费:{1}".format(d, self.sum_slippage_fee())
-            logger.info(s)
-            await self.neg_cycle(self.get_market_sell_size())
+            s = self.to_string() +  "run_strategy() 逆循环差价={0}, 滑点+手续费={1}".format(d, self.sum_slippage_fee())
+            logger.debug(s)
+            await self.neg_cycle(self.get_base_quote_sell_size())
 
     def sum_slippage_fee(self):
         return self.slippage_base_quote + self.slippage_base_mid + self.slippage_quote_mid + self.fee_taker * 3
 
-    '''
-    # 计算最保险的下单数量
-    1.	LTC/BTC卖方盘口吃单数量：ltc_btc_sell1_quantity*order_ratio_ltc_btc，其中ltc_btc_sell1_quantity 代表LTC/BTC卖一档的数量，
-        order_ratio_ltc_btc代表本策略在LTC/BTC盘口的吃单比例
-    2.	LTC/CNY买方盘口吃单数量：ltc_cny_buy1_quantity*order_ratio_ltc_cny，其中order_ratio_ltc_cny代表本策略在LTC/CNY盘口的吃单比例
-    3.	LTC/BTC账户中可以用来买LTC的BTC额度及可以置换的LTC个数：
-        btc_available - btc_reserve，可以置换成
-        (btc_available – btc_reserve)/ltc_btc_sell1_price个LTC
-        其中，btc_available表示该账户中可用的BTC数量，btc_reserve表示该账户中应该最少预留的BTC数量
-        （这个数值由用户根据自己的风险偏好来设置，越高代表用户风险偏好越低）。
-    4.	BTC/CNY账户中可以用来买BTC的CNY额度及可以置换的BTC个数和对应的LTC个数：
-        cny_available - cny_reserve, 可以置换成
-        (cny_available-cny_reserve)/btc_cny_sell1_price个BTC，
-        相当于
-        (cny_available-cny_reserve)/btc_cny_sell1_price/ltc_btc_sell1_price
-        个LTC
-        其中：cny_available表示该账户中可用的人民币数量，cny_reserve表示该账户中应该最少预留的人民币数量
-        （这个数值由用户根据自己的风险偏好来设置，越高代表用户风险偏好越低）。
-    5.	LTC/CNY账户中可以用来卖的LTC额度：
-        ltc_available – ltc_reserve
-        其中，ltc_available表示该账户中可用的LTC数量，ltc_reserve表示该账户中应该最少预留的LTC数量
-        （这个数值由用户根据自己的风险偏好来设置，越高代表用户风险偏好越低）。
-    '''
-    def get_market_buy_size(self):
+    def get_base_quote_buy_size(self):
+        can_use_amount_base = 0.0
+        if self.limit_base <= 0.0:
+            can_use_amount_base = self.balance[self.base]['free']
+        else:
+            can_use_amount_base = min(self.balance[self.base]['free'], self.limit_base)
+        
+        can_use_amount_quote = 0.0
+        if self.limit_quote <= 0.0:
+            can_use_amount_quote = self.balance[self.quote]['free']
+        else:
+            can_use_amount_quote = min(self.balance[self.quote]['free'], self.limit_quote)
+
+        can_use_amount_mid = 0.0
+        if self.limit_mid <= 0.0:
+            can_use_amount_mid = self.balance[self.mid]['free']
+        else:
+            can_use_amount_mid = min(self.balance[self.mid]['free'], self.limit_mid)
+
         market_buy_size = self.order_book[self.base_quote]["asks"][0][1] * self.order_ratio_base_quote
         base_mid_sell_size = self.order_book[self.base_mid]["bids"][0][1] * self.order_ratio_base_mid
-        base_quote_off_reserve_buy_size = (self.balance[self.quote]['free'] - self.base_quote_quote_reserve) /  self.order_book[self.base_quote]["asks"][0][0]
-        quote_mid_off_reserve_buy_size = (self.balance[self.mid]['free'] - self.quote_mid_mid_reserve) / self.order_book[self.quote_mid]["asks"][0][0] / self.order_book[self.base_quote]["asks"][0][0]
-        base_mid_off_reserve_sell_size = self.balance[self.base]['free'] - self.base_mid_base_reserve
-        logger.info("计算数量：{0}，{1}，{2}，{3}，{4}".format(
+
+        base_quote_off_reserve_buy_size = (can_use_amount_quote) /  self.order_book[self.base_quote]["asks"][0][0]
+        quote_mid_off_reserve_buy_size = (can_use_amount_mid) / self.order_book[self.quote_mid]["asks"][0][0] / self.order_book[self.base_quote]["asks"][0][0]
+        base_mid_off_reserve_sell_size = can_use_amount_base
+
+        logger.info(self.to_string() + "计算数量：{0}，{1}，{2}，{3}，{4}".format(
             market_buy_size
             , base_mid_sell_size
             , base_quote_off_reserve_buy_size
             , quote_mid_off_reserve_buy_size
-            , base_mid_off_reserve_sell_size))
+            , base_mid_off_reserve_sell_size)
+            )
+
         size = min(market_buy_size, base_mid_sell_size, base_quote_off_reserve_buy_size, quote_mid_off_reserve_buy_size, base_mid_off_reserve_sell_size)
         return size
 
-    '''
-    卖出的下单保险数量计算
-    假设BTC/CNY盘口流动性好
-    1. LTC/BTC买方盘口吃单数量：ltc_btc_buy1_quantity*order_ratio_ltc_btc，其中ltc_btc_buy1_quantity 代表LTC/BTC买一档的数量，
-        order_ratio_ltc_btc代表本策略在LTC/BTC盘口的吃单比例
-    2. LTC/CNY卖方盘口卖单数量：ltc_cny_sell1_quantity*order_ratio_ltc_cny，其中order_ratio_ltc_cny代表本策略在LTC/CNY盘口的吃单比例
-    3. LTC/BTC账户中可以用来卖LTC的数量：
-        ltc_available - ltc_reserve，
-        其中，ltc_available表示该账户中可用的LTC数量，ltc_reserve表示该账户中应该最少预留的LTC数量
-        （这个数值由用户根据自己的风险偏好来设置，越高代表用户风险偏好越低）。
-    4.	BTC/CNY账户中可以用来卖BTC的BTC额度和对应的LTC个数：
-        btc_available - btc_reserve, 可以置换成
-        (btc_available-btc_reserve) / ltc_btc_sell1_price个LTC
-        其中：btc_available表示该账户中可用的BTC数量，btc_reserve表示该账户中应该最少预留的BTC数量
-        （这个数值由用户根据自己的风险偏好来设置，越高代表用户风险偏好越低）。
-    5.	LTC/CNY账户中可以用来卖的cny额度：
-        cny_available – cny_reserve，相当于
-        (cny_available – cny_reserve) / ltc_cny_sell1_price个LTC
-        其中，cny_available表示该账户中可用的人民币数量，cny_reserve表示该账户中应该最少预留的人民币数量
-        （这个数值由用户根据自己的风险偏好来设置，越高代表用户风险偏好越低）。
-    '''
-    def get_market_sell_size(self):
+    def get_base_quote_sell_size(self):
+        can_use_amount_base = 0.0
+        if self.limit_base <= 0.0:
+            can_use_amount_base = self.balance[self.base]['free']
+        else:
+            can_use_amount_base = min(self.balance[self.base]['free'], self.limit_base)
+        
+        can_use_amount_quote = 0.0
+        if self.limit_quote <= 0.0:
+            can_use_amount_quote = self.balance[self.quote]['free']
+        else:
+            can_use_amount_quote = min(self.balance[self.quote]['free'], self.limit_quote)
+
+        can_use_amount_mid = 0.0
+        if self.limit_mid <= 0.0:
+            can_use_amount_mid = self.balance[self.mid]['free']
+        else:
+            can_use_amount_mid = min(self.balance[self.mid]['free'], self.limit_mid)
+
         market_sell_size = self.order_book[self.base_quote]["bids"][0][1] * self.order_ratio_base_quote
         base_mid_buy_size = self.order_book[self.base_mid]["asks"][0][1] * self.order_ratio_base_mid
-        base_quote_off_reserve_sell_size = self.balance[self.base]['free'] - self.base_quote_base_reserve
-        quote_mid_off_reserve_sell_size = (self.balance[self.quote]['free'] - self.quote_mid_quote_reserve) / self.order_book[self.base_quote]["bids"][0][0]
-        base_mid_off_reserve_buy_size = (self.balance[self.mid]['free'] - self.base_mid_mid_reserve) / self.order_book[self.base_mid]["asks"][0][0]
-        logger.info("计算数量：{0}，{1}，{2}，{3}，{4}".format(
+
+        base_quote_off_reserve_sell_size = can_use_amount_base
+        quote_mid_off_reserve_sell_size = (can_use_amount_quote) / self.order_book[self.base_quote]["bids"][0][0]
+        base_mid_off_reserve_buy_size = (can_use_amount_mid) / self.order_book[self.base_mid]["asks"][0][0]
+
+        logger.info(self.to_string() + "计算数量：{0}，{1}，{2}，{3}，{4}".format(
             market_sell_size
             , base_mid_buy_size
             , base_quote_off_reserve_sell_size
             , quote_mid_off_reserve_sell_size
-            , base_mid_off_reserve_buy_size))
+            , base_mid_off_reserve_buy_size)
+            )
+
         return min(market_sell_size, base_mid_buy_size, base_quote_off_reserve_sell_size, quote_mid_off_reserve_sell_size, base_mid_off_reserve_buy_size)
 
     '''
@@ -217,70 +216,123 @@ class triangle(exchange_base):
     LTC/BTC 买, LTC/CNY 卖，BTC/CNY 买
     '''
     async def pos_cycle(self, base_quote_buy_amount):
-        logger.debug("pos_cycle() start  {0}".format(base_quote_buy_amount))
+        logger.debug(self.to_string() + "pos_cycle({0}) start".format(base_quote_buy_amount))
         ret = await exchange_base.buy_cancel(self, self.base_quote, base_quote_buy_amount)
+        logger.debug(self.to_string() + "pos_cycle({0}) buy_cancel() ret={1}".format(base_quote_buy_amount, ret))
         if ret['filled'] <= 0:
-            logger.debug("pos_cycle() return ret['filled'] <= 0 {0}".format(ret))
+            logger.debug(self.to_string() + "pos_cycle({0}) return ret['filled'] <= 0 ret={1}".format(base_quote_buy_amount, ret))
             return
-
-        logger.info("pos_cycle() 开始对冲，数量：{0}".format(ret['filled']))
+        quote_to_be_hedged = ret['filled'] * ret['price']
+        '''
+        logger.debug(self.to_string() + "pos_cycle({0}) Process hedged_sell({1}, {2})".format(base_quote_buy_amount, self.base_mid, ret['filled']))
         p1 = multiprocessing.Process(target=self.hedged_sell, args=(self.base_mid, ret['filled']))
         p1.start()
 
-        # 直接从 ret 里面获取成交的 quote_cur 金额，然后对冲该金额
-        quote_to_be_hedged = ret['filled'] * ret['price']
-        logger.debug("pos_cycle()  {0}={1}*{2}".format(quote_to_be_hedged, ret['filled'], ret['price']))
+        logger.debug(self.to_string() + "pos_cycle({0}) Process hedged_buy({1}, {2}={3}*{4})".format(base_quote_buy_amount, self.quote_mid, quote_to_be_hedged, ret['filled'], ret['price']))
         p2 = multiprocessing.Process(target=self.hedged_buy, args=(self.quote_mid, quote_to_be_hedged))
         p2.start()
 
         p1.join()
         p2.join()
-        logger.debug("pos_cycle() end")
+        '''
+        tasks = []
+        logger.debug(self.to_string() + "pos_cycle({0}) tasks hedged_sell({1}, {2}) ".format(base_quote_buy_amount, self.base_mid, ret['filled']))
+        tasks.append(asyncio.ensure_future(self.hedged_sell(self.base_mid, ret['filled'])))
+        logger.debug(self.to_string() + "pos_cycle({0}) tasks hedged_buy({1}, {2}={3}*{4}) ".format(base_quote_buy_amount, self.quote_mid, quote_to_be_hedged, ret['filled'], ret['price']))
+        tasks.append(asyncio.ensure_future(self.hedged_buy(self.quote_mid, quote_to_be_hedged)))
+        pending = asyncio.Task.all_tasks()
+        loop = asyncio.get_event_loop()
+        loop.run_until_complete(asyncio.gather(*pending))
+
+        logger.debug(self.to_string() + "pos_cycle({0}) end".format(base_quote_buy_amount))
 
     '''
     逆循环:
     LTC/BTC 卖, LTC/CNY 买，BTC/CNY 卖
     '''
     async def neg_cycle(self, base_quote_sell_amount):
-        logger.debug("neg_cycle() start  {0}".format(base_quote_sell_amount))
+        logger.debug(self.to_string() + "neg_cycle({0}) start".format(base_quote_sell_amount))
         ret = await exchange_base.sell_cancel(self, self.base_quote, base_quote_sell_amount)
+        logger.debug(self.to_string() + "neg_cycle({0}) sell_cancel() ret={1}".format(base_quote_sell_amount, ret))
         if ret['filled'] <= 0:
-            logger.debug("neg_cycle() return ret['filled'] <= 0 {0}".format(ret))
+            logger.debug(self.to_string() + "neg_cycle({0}) return ret['filled'] <= 0 ret={1}".format(base_quote_sell_amount, ret))
             return
-
-        logger.info("neg_cycle() 开始对冲，数量：{0}".format(ret['filled']))
+        quote_to_be_hedged = ret['filled'] * ret['price']
+        '''
+        logger.debug(self.to_string() + "neg_cycle({0}) hedged_buy({1}, {2}) Process".format(base_quote_sell_amount, self.base_mid, ret['filled']))
         p1 = multiprocessing.Process(target=self.hedged_buy, args=(self.base_mid, ret['filled']))
         p1.start()
 
-        # 直接从 ret 里面获取成交的 quote_cur 金额，然后对冲该金额
-        quote_to_be_hedged = ret['filled'] * ret['price']
-        logger.debug("neg_cycle()  {0}={1}*{2}".format(quote_to_be_hedged, ret['filled'], ret['price']))
+        logger.debug(self.to_string() + "neg_cycle({0}) hedged_sell({1}, {2}={3}*{4}) Process".format(base_quote_sell_amount, self.quote_mid, quote_to_be_hedged, ret['filled'], ret['price']))
         p2 = multiprocessing.Process(target=self.hedged_sell, args=(self.quote_mid, quote_to_be_hedged))
         p2.start()
 
         p1.join()
         p2.join()
-        logger.debug("neg_cycle() end")
+        '''
+        tasks = []
+        logger.debug(self.to_string() + "neg_cycle({0}) tasks hedged_buy({1}, {2}) ".format(base_quote_sell_amount, self.base_mid, ret['filled']))
+        tasks.append(asyncio.ensure_future(self.hedged_buy(self.base_mid, ret['filled'])))
+        logger.debug(self.to_string() + "neg_cycle({0}) tasks hedged_sell({1}, {2}={3}*{4}) ".format(base_quote_sell_amount, self.quote_mid, quote_to_be_hedged, ret['filled'], ret['price']))
+        tasks.append(asyncio.ensure_future(self.hedged_sell(self.quote_mid, quote_to_be_hedged)))
+        pending = asyncio.Task.all_tasks()
+        loop = asyncio.get_event_loop()
+        loop.run_until_complete(asyncio.gather(*pending))
+
+        logger.debug(self.to_string() + "neg_cycle({0}) end".format(base_quote_sell_amount))
 
     async def hedged_buy(self, symbol, amount):
-        logger.debug("hedged_buy() start {0}:{1}".format(symbol, amount))
+        logger.debug(self.to_string() + "hedged_buy({0}, {1}) start ".format(symbol, amount))
+        '''
         try:
             ret = await exchange_base.buy_cancel(self, symbol, amount)
+            logger.debug(self.to_string() + "hedged_buy({0}, {1}) buy_cancel() ret={2} ".format(symbol, amount, ret))
             if amount > ret['filled']:
+                logger.debug(self.to_string() + "hedged_buy({0}, {1}) buy_all({2}, {3})".format(symbol, amount, symbol, amount - ret['filled']))
                 await exchange_base.buy_all(self, symbol, amount - ret['filled'])
         except:
             logger.error(traceback.format_exc())
-        logger.debug("hedged_buy() end {0}:{1}".format(symbol, amount))
+        '''
+        logger.debug(self.to_string() + "hedged_buy({0}, {1}) buy_all({2}, {3})".format(symbol, amount, symbol, amount))
+        await exchange_base.buy_all(self, symbol, amount)
+        logger.debug(self.to_string() + "hedged_buy({0}, {1}) end ".format(symbol, amount))
 
     async def hedged_sell(self, symbol, amount):
-        logger.debug("hedged_sell() start {0}:{1}".format(symbol, amount))
+        logger.debug(self.to_string() + "hedged_sell({0}, {1}) start ".format(symbol, amount))
+        '''
         try:
             ret = await exchange_base.sell_cancel(self, symbol, amount)
+            logger.debug(self.to_string() + "hedged_sell({0}, {1}) sell_cancel() ret={2} ".format(symbol, amount, ret))
             if amount > ret['filled']:
+                logger.debug(self.to_string() + "hedged_sell({0}, {1}) sell_all({2}, {3})".format(symbol, amount, symbol, amount - ret['filled']))
                 await exchange_base.sell_all(self, symbol, amount - ret['filled'])
         except:
             logger.error(traceback.format_exc())
-        logger.debug("hedged_sell() end {0}:{1}".format(symbol, amount))
+        '''
+        logger.debug(self.to_string() + "hedged_sell({0}, {1}) sell_all({2}, {3})".format(symbol, amount, symbol, amount))
+        await exchange_base.sell_all(self, symbol, amount)
+        logger.debug(self.to_string() + "hedged_sell({0}, {1}) end ".format(symbol, amount))
+
+
+
+
+
+
+
+##########################################################################
+# do
+def do_triangle(list_id_base_quote_mid):
+    logger.info("do_triangle({0}) start".format(list_id_base_quote_mid))
+    tasks = []
+    for target in list_id_base_quote_mid:
+        logger.info("do_triangle({0}) target={1}".format(list_id_base_quote_mid, target))
+        t = triangle(util.util.get_exchange(target['id'], True), target['base'], target['quote'], target['mid'])
+        tasks.append(asyncio.ensure_future(t.run(t.run_strategy)))
+    pending = asyncio.Task.all_tasks()
+    loop = asyncio.get_event_loop()
+    loop.run_until_complete(asyncio.gather(*pending))
+    logger.info("do_triangle({0}) end".format(list_id_base_quote_mid))
+
 
 
 

@@ -1,5 +1,4 @@
 #!/usr/bin/python
-
 import io
 import os
 import sys
@@ -18,7 +17,6 @@ dir_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.append(dir_root)
 import util.util
 import util.exchange_data
-
 logger = util.util.get_log(__name__)
 
 
@@ -47,7 +45,6 @@ ids = [
     "zb", 
     ]
 '''
-
 
 ids = ['binance', 'bittrex']
 symbols = ['LTC/BTC']

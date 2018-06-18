@@ -66,7 +66,9 @@ class stat_arbitrage():
         # 仓位 再平衡，开关
         self.rebalance_on = False
 
-
+    def to_string(self):
+        return "stat_arbitrage[{0},{1},{2}]".format(self.symbol, self.ex1.ex.id, self.ex2.ex.id)
+        
     # 刚启动时，没有k线数据，尝试从数据库中取数据
     def fetch_history_data_from_db(self):
         if len(self.spread1List) > 0:
@@ -74,10 +76,7 @@ class stat_arbitrage():
         # 取最近的 sma_window_size 个k线
         from_dt = int(time.time()) - self.sma_window_size * 2
         for i in range(from_dt, from_dt + self.sma_window_size):
-            try:
-                self.fetch_data_from_db(i)
-            except:
-                logger.debug(traceback.format_exc())
+            self.fetch_data_from_db(i)
     
     # 从 db 中取1条指定时间的数据
     def fetch_data_from_db(self, sql_con_timestamp):
@@ -186,12 +185,12 @@ class stat_arbitrage():
         if self.current_position_direction == 0:
             if (self.spread1List[-1] - self.spread1_mean) / self.spread1_stdev > self.spread1_open_condition_stdev_coe:
                 if (abs(self.spread1List[-1] - self.spread1_mean) / self.ex1.sell_1_price) < (self.ex1.fee_taker  + self.ex2.fee_taker) * 3:
-                    logger.debug('calc_position_direction() check_fees 1')
+                    logger.debug(self.to_string() + 'calc_position_direction() check_fees 1')
                     return 0
                 return 1
             elif (self.spread2List[-1] - self.spread2_mean) / self.spread2_stdev > self.spread2_open_condition_stdev_coe:
                 if (abs(self.spread2List[-1] - self.spread2_mean) / self.ex1.buy_1_price) < (self.ex1.fee_taker  + self.ex2.fee_taker) * 3:
-                    logger.debug('calc_position_direction() check_fees 2')
+                    logger.debug(self.to_string() + 'calc_position_direction() check_fees 2')
                     return 0
                 return 2
         # 已有仓位, 方向1 (sell exchange1, buy exchange2)
@@ -214,9 +213,12 @@ class stat_arbitrage():
         return 0
 
     async def run_arbitrage(self):
+        logger.debug(self.to_string() + "run_arbitrage() start")
         await self.init_data()
         self.amount_min = max(self.ex1.balance_amount_min(self.symbol), self.ex2.balance_amount_min(self.symbol))
+        logger.debug(self.to_string() + "run_arbitrage() amount_min={0}".format(self.amount_min))
         while True:
+            logger.debug(self.to_string() + "run_arbitrage() while(True)")
             await self.ex1.fetch_balance()
             await self.ex2.fetch_balance()
             
@@ -225,11 +227,13 @@ class stat_arbitrage():
 
             # 时间不同步，跳过 
             if abs(self.ex1.order_book_time - self.ex2.order_book_time) > 10:
+                logger.debug(self.to_string() + "run_arbitrage() 时间不同步，跳过")
                 continue
             # 时间太久，跳过
             cur_t = int(time.time())
             timeout_warn = 10
             if self.ex1.order_book_time < cur_t - timeout_warn or self.ex2.order_book_time < cur_t - timeout_warn:
+                logger.debug(self.to_string() + "run_arbitrage() 时间太久，跳过")
                 continue
 
             # 计算方差
@@ -240,6 +244,7 @@ class stat_arbitrage():
                 c1 = abs(self.spread1List[-1] - self.spread1_mean) / self.spread1_stdev < self.spread1_close_condition_stdev_coe
                 c2 = abs(self.spread2List[-1] - self.spread2_mean) / self.spread2_stdev < self.spread2_close_condition_stdev_coe
                 if c1 or c2:
+                    logger.debug(self.to_string() + "run_arbitrage() 平衡仓位 {0}, {1}".format(c1, c2))
                     self.rebalance_position()
                     continue
 
@@ -248,8 +253,10 @@ class stat_arbitrage():
             position_direction = self.calc_position_direction()
             if position_direction == 0:
                 # 没有交易信号，继续=
+                logger.debug(self.to_string() + "run_arbitrage() 没有交易信号，继续=")
                 continue
             elif position_direction == 1:
+                logger.debug(self.to_string() + "run_arbitrage() position_direction == 1")
                 self.log(position_direction)
                 if self.current_position_direction == 0:  # 当前没有持仓
                     # 计算第1次开仓数量
@@ -273,10 +280,12 @@ class stat_arbitrage():
 
                 # 计算出的交易量 < 交易所要求的最小量 : 无法下单，忽略这次机会
                 if amount_todo <= self.amount_min:
+                    logger.debug(self.to_string() + "run_arbitrage() 计算出的交易量 < 交易所要求的最小量 : 无法下单，忽略这次机会")
                     continue
                 await self.do_order_spread1(amount_todo)
 
             elif position_direction == 2:
+                logger.debug(self.to_string() + "run_arbitrage() position_direction == 2")
                 self.log(position_direction)
                 if self.current_position_direction == 0:  # 当前没有持仓
                     # 计算第1次开仓数量
@@ -299,6 +308,7 @@ class stat_arbitrage():
                 amount_todo = min(amount_todo, amount_max)
                 # 计算出的交易量 < 交易所要求的最小量 : 无法下单，忽略这次机会
                 if amount_todo <= self.amount_min:
+                    logger.debug(self.to_string() + "run_arbitrage() 计算出的交易量 < 交易所要求的最小量 : 无法下单，忽略这次机会")
                     continue
                 await self.do_order_spread2(amount_todo)
 
@@ -311,6 +321,7 @@ class stat_arbitrage():
             
             # 完成一次套利，sleep 一下
             time.sleep(15)
+        logger.debug(self.to_string() + "run_arbitrage() end")
 
     def log(self, position_direction):
         str_bz = '\n' + self.symbol + ';bz=' + str(position_direction) + '\n'     \
@@ -347,6 +358,7 @@ class stat_arbitrage():
 
     # 异常处理
     async def run(self, func, *args, **kwargs):
+        logger.debug(self.to_string() + 'run() start')
         err_timeout = 0
         err_ddos = 0
         err_auth = 0
@@ -356,6 +368,7 @@ class stat_arbitrage():
         err = 0
         while True:
             try:
+                logger.debug(self.to_string() + 'run() func')
                 await func(*args, **kwargs)
                 err_timeout = 0
                 err_ddos = 0
@@ -403,7 +416,7 @@ class stat_arbitrage():
             except:
                 logger.error(traceback.format_exc())
                 break
-        logger.debug('stat_arbitrage run() end.')
+        logger.debug(self.to_string() + 'run() end')
 
 
 
@@ -416,6 +429,7 @@ class stat_arbitrage():
 ############################################################################
 
 def do_stat_arbitrage(symbols, ids, db_base):
+    logger.info("do_stat_arbitrage({0}, {1}) start".format(symbols, ids))
     ex_list = []
     for id in ids:
         ex = exchange_base(util.util.get_exchange(id, True))
@@ -427,6 +441,7 @@ def do_stat_arbitrage(symbols, ids, db_base):
         for j in range(0, size):
             if j > i:
                 for symbol in symbols:
+                    logger.info("do_stat_arbitrage() stat_arbitrage({0}, {1}, {2})".format(symbol, ex_list[i].ex.id, ex_list[j].ex.id))
                     pair = stat_arbitrage(symbol, ex_list[i], ex_list[j], db_base)
                     pair_list.append(pair)
 
@@ -437,6 +452,7 @@ def do_stat_arbitrage(symbols, ids, db_base):
     pending = asyncio.Task.all_tasks()
     loop = asyncio.get_event_loop()
     loop.run_until_complete(asyncio.gather(*pending))
+    logger.info("do_stat_arbitrage({0}, {1}) end".format(symbols, ids))
 
 
 

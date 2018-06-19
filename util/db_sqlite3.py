@@ -33,13 +33,15 @@ class db_sqlite3:
             try:
                 self.cursor.close()
             finally:
-                logger.info(traceback.format_exc())
+                #logger.info(traceback.format_exc())
+                pass
         self.cursor = None
         if self.conn is not None:
             try:
                 self.conn.close()
             finally:
-                logger.info(traceback.format_exc())
+                #logger.info(traceback.format_exc())
+                pass
         self.conn = None
 
     def __del__(self):

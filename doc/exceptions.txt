@@ -1,0 +1,12 @@
+'exceptions': 
+{
+    '-1000': ExchangeNotAvailable,  # {"code":-1000,"msg":"An unknown error occured while processing the request."}
+    '-1013': InvalidOrder,  # createOrder -> 'invalid quantity'/'invalid price'/MIN_NOTIONAL
+    '-1021': InvalidNonce,  # 'your time is ahead of server'
+    '-1100': InvalidOrder,  # createOrder(symbol, 1, asdf) -> 'Illegal characters found in parameter 'price'
+    '-2010': InsufficientFunds,  # createOrder -> 'Account has insufficient balance for requested action.'
+    '-2011': OrderNotFound,  # cancelOrder(1, 'BTC/USDT') -> 'UNKNOWN_ORDER'
+    '-2013': OrderNotFound,  # fetchOrder(1, 'BTC/USDT') -> 'Order does not exist'
+    '-2014': AuthenticationError,  # {"code":-2014, "msg": "API-key format invalid."}
+    '-2015': AuthenticationError,  # "Invalid API-key, IP, or permissions for action."
+}

@@ -15,7 +15,7 @@ import util.db_base
 import util.triangle
 import util.exchange_data
 import util.exchange_base
-logger = util.util.get_log(__name__)
+#logger = util.util.get_log(__name__)
 
 
 '''

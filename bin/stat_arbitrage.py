@@ -16,11 +16,11 @@ import util.triangle
 import util.exchange_data
 import util.exchange_base
 import util.stat_arbitrage
-logger = util.util.get_log(__name__)
+#logger = util.util.get_log(__name__)
 
 
 symbols = ["ETH/BTC"]
-ids = ['bitfinex2', 'binance']
+ids = ['okex', 'binance']
 db_base = util.db_base.db_base()
 db_base.init_sqlite3(conf.conf.dir_db, 'db_ticker')
 util.stat_arbitrage.do_stat_arbitrage(symbols, ids, db_base)

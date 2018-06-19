@@ -31,7 +31,8 @@ class db_base:
         self.db_name = db_name
 
     def close(self):
-        self.db.close()
+        if self.db is not None:
+            self.db.close()
 
     def __del__(self):
         self.close()
@@ -129,7 +130,7 @@ class db_base:
 
     def ticker_select(self, db_name, symbol, exchange, dt):
         self.ticker_get_table_name(db_name, symbol, exchange)
-        sql = 'select * from ' + self.table + ' where  dt == ' + str(dt)
+        sql = 'select * from ' + self.table + ' where  dt == ' + str(dt) + " LIMIT 1"
         return self.fetchall(sql)
 
     ##########################################################################

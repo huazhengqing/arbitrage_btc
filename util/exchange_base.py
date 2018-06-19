@@ -1,5 +1,4 @@
 #!/usr/bin/python
-
 import os
 import sys
 import math
@@ -17,7 +16,7 @@ import util.util
 logger = util.util.get_log(__name__)
 
 
-class exchange_base:
+class exchange_base(object):
     def __init__(self, exchange = None):
         self.ex = exchange
 
@@ -77,7 +76,9 @@ class exchange_base:
         self.order_book = dict()
         self.order_book_time = 0
         self.buy_1_price = 0.0
+        self.buy_1_quantity = 0.0
         self.sell_1_price = 0.0
+        self.sell_1_quantity = 0.0
         self.slippage_value = 0.0
         self.slippage_ratio  = 0.0
 
@@ -187,10 +188,14 @@ class exchange_base:
     '''
     async def fetch_order_book(self, symbol, i = 5):
         #logger.debug(self.to_string() + "fetch_order_book({0}) start".format(symbol))
+        if symbol == '':
+            return
         self.order_book[symbol] = await self.ex.fetch_order_book(symbol, i)
         self.order_book_time = int(time.time())
         self.buy_1_price = self.order_book[symbol]['bids'][0][0]
+        self.buy_1_quantity = self.order_book[symbol]['bids'][0][1]
         self.sell_1_price = self.order_book[symbol]['asks'][0][0]
+        self.sell_1_quantity = self.order_book[symbol]['asks'][0][1]
         self.slippage_value = self.sell_1_price - self.buy_1_price
         self.slippage_ratio = (self.sell_1_price - self.buy_1_price) / self.buy_1_price
         self.set_symbol(symbol)
@@ -507,29 +512,6 @@ class exchange_base:
             #print(coin_eth, ': bids=', self.buy_1_price, '|asks=', self.sell_1_price, '|spread%=', round(self.slippage_ratio, 4))
             if abs(find_profit) > fee:
                 logger.info("%s \t %10.4f"%(find_coin, abs(find_profit) - fee))
-
-    # 找出 交易所共同支持的 交易对
-    async def arbitrage_find_symbols(self, ids):
-        exchanges = {}
-        for id in ids:
-            exchanges[id] = util.util.get_exchange(id, False)
-            await exchanges[id].load_markets()
-            await exchanges[id].close()
-        allSymbols = [symbol for id in ids for symbol in exchanges[id].symbols]
-        uniqueSymbols = list(set(allSymbols))
-        arbitrableSymbols = sorted([symbol for symbol in uniqueSymbols if allSymbols.count(symbol) > 1])
-
-        s = util.util.to_str(' symbol          | ' + ''.join([' {:<15} | '.format(id) for id in ids]))
-        logger.info(s)
-        s = util.util.to_str(''.join(['-----------------+-' for x in range(0, len(ids) + 1)]))
-        logger.info(s)
-
-        for symbol in arbitrableSymbols:
-            string = ' {:<15} | '.format(symbol)
-            for id in ids:
-                string += ' {:<15} | '.format(id if symbol in exchanges[id].symbols else '')
-            logger.info(string)
-
 
 
 

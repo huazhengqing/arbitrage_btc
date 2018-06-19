@@ -23,10 +23,10 @@ import util.exchange_data
 
 
 ids = ['binance', 'okex']
-util.exchange_data.get_common_symbols(ids)
+symbols = util.exchange_data.get_common_symbols(ids)
 
-symbols = ['LTC/BTC']
-#util.exchange_data.ticker_fetch_to_sqlite(ids, symbols)
+symbols = ['EOS/ETH']
+util.exchange_data.ticker_fetch_to_sqlite(ids, symbols)
 
 
 

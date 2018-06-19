@@ -90,29 +90,6 @@ class exchange_data(exchange_base):
 
 
 ##########################################################################
-# ticker
-'''
-ccxt.exchanges
-[LTC/BTC, ETH/BTC]
-'''
-def ticker_fetch_to_sqlite(ids, symbols):
-    logger.info("ticker_fetch_to_sqlite({0}, {1}) start".format(ids, symbols))
-    tasks = []
-    for id in ids:
-        logger.info("ticker_fetch_to_sqlite({0}, {1}) id={2}".format(ids, symbols, id))
-        ex_data = exchange_data(id)
-        ex_data.init_sqlite3(conf.conf.dir_db, 'db_ticker')
-        for symbol in symbols:
-            logger.info("ticker_fetch_to_sqlite({0}, {1}) id={2},symbol={3}".format(ids, symbols, id, symbol))
-            tasks.append(asyncio.ensure_future(ex_data.ticker_run(symbol)))
-    pending = asyncio.Task.all_tasks()
-    loop = asyncio.get_event_loop()
-    loop.run_until_complete(asyncio.gather(*pending))
-    logger.info("ticker_fetch_to_sqlite({0}, {1}) end".format(ids, symbols))
-
-
-
-
 # 找出 交易所共同支持的 交易对
 def get_common_symbols(ids):
     exchanges = {}
@@ -146,6 +123,28 @@ def get_common_symbols(ids):
         logger.info(string)
 
     return arbitrableSymbols
+
+# ticker
+'''
+ccxt.exchanges
+[LTC/BTC, ETH/BTC]
+'''
+def ticker_fetch_to_sqlite(ids, symbols):
+    logger.info("ticker_fetch_to_sqlite({0}, {1}) start".format(ids, symbols))
+    tasks = []
+    for id in ids:
+        logger.info("ticker_fetch_to_sqlite({0}, {1}) id={2}".format(ids, symbols, id))
+        ex_data = exchange_data(id)
+        ex_data.init_sqlite3(conf.conf.dir_db, 'db_ticker')
+        for symbol in symbols:
+            logger.info("ticker_fetch_to_sqlite({0}, {1}) id={2},symbol={3}".format(ids, symbols, id, symbol))
+            tasks.append(asyncio.ensure_future(ex_data.ticker_run(symbol)))
+    pending = asyncio.Task.all_tasks()
+    loop = asyncio.get_event_loop()
+    loop.run_until_complete(asyncio.gather(*pending))
+    logger.info("ticker_fetch_to_sqlite({0}, {1}) end".format(ids, symbols))
+
+
 
 
 

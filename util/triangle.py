@@ -97,6 +97,7 @@ class triangle(exchange_base):
 
         await exchange_base.fetch_balance(self)
 
+        # tudo: 需要改为同时取数据
         await exchange_base.fetch_order_book(self, self.base_quote, 5)
         base_quote_ask_1 = self.order_book[self.base_quote]['asks'][0][0]
         base_quote_bid_1 = self.order_book[self.base_quote]['bids'][0][0]

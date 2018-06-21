@@ -1,0 +1,33 @@
+fetch_order={
+    'info': {
+        'symbol': 'XLMETH',
+        'orderId': 23795004,
+        'clientOrderId': 'kfuhbnQsSjcA1OEFPW8EHu',
+        'price': '0.00043179',
+        'origQty': '161.00000000',
+        'executedQty': '161.00000000',
+        'status': 'FILLED',
+        'timeInForce': 'GTC',
+        'type': 'LIMIT',
+        'side': 'BUY',
+        'stopPrice': '0.00000000',
+        'icebergQty': '0.00000000',
+        'time': 1529572474783,
+        'isWorking': True
+    },
+    'id': '23795004',
+    'timestamp': 1529572474783,
+    'datetime': '2018-06-21T09: 14: 35.783Z',
+    'lastTradeTimestamp': None,
+    'symbol': 'XLM/ETH',
+    'type': 'limit',
+    'side': 'buy',
+    'price': 0.00043179,
+    'amount': 161.0,
+    'cost': 0.06951819,
+    'filled': 161.0,
+    'remaining': 0.0,
+    'status': 'closed',
+    'fee': None,
+    'trades': None
+}

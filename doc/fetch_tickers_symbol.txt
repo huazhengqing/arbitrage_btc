@@ -20,7 +20,7 @@
     'quoteVolume': self.safe_float(ticker, 'quoteVolume'),
     'info': ticker,
 }
-ticker={
+fetch_tickers_symbol={
     'symbol': 'LTC/BTC',
     'timestamp': 1529327741446,
     'datetime': '2018-06-18T13: 15: 41.446Z',

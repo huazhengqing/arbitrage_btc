@@ -86,6 +86,13 @@ class exchange_data(exchange_base):
 
 
 
+    async def test(self):
+        await exchange_base.load_markets(self)
+        t = await self.ex.fetch_trades('ETH/BTC')
+        await exchange_base.close(self)
+        logger.debug("test() fetch_trades={0}".format(t))
+        
+        
 
 
 
@@ -125,16 +132,14 @@ def get_common_symbols(ids):
     return arbitrableSymbols
 
 # ticker
-'''
-ccxt.exchanges
-[LTC/BTC, ETH/BTC]
-'''
 def ticker_fetch_to_sqlite(ids, symbols):
     logger.info("ticker_fetch_to_sqlite({0}, {1}) start".format(ids, symbols))
+    exchanges = {}
     tasks = []
     for id in ids:
         logger.info("ticker_fetch_to_sqlite({0}, {1}) id={2}".format(ids, symbols, id))
         ex_data = exchange_data(id)
+        exchanges[id] = ex_data
         ex_data.init_sqlite3(conf.conf.dir_db, 'db_ticker')
         for symbol in symbols:
             logger.info("ticker_fetch_to_sqlite({0}, {1}) id={2},symbol={3}".format(ids, symbols, id, symbol))
@@ -145,6 +150,14 @@ def ticker_fetch_to_sqlite(ids, symbols):
     logger.info("ticker_fetch_to_sqlite({0}, {1}) end".format(ids, symbols))
 
 
+
+def test(id):
+    tasks = []
+    ex_data = exchange_data(id)
+    tasks.append(asyncio.ensure_future(ex_data.test()))
+    pending = asyncio.Task.all_tasks()
+    loop = asyncio.get_event_loop()
+    loop.run_until_complete(asyncio.gather(*pending))
 
 
 

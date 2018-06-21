@@ -18,11 +18,27 @@ import util.util
 import util.db_base
 import util.exchange_data
 from util.exchange_base import exchange_base
-logger = util.util.get_log(__name__)
+#logger = util.util.get_log(__name__)
 
 
 
 
+
+util.exchange_data.test('binance')
+
+
+
+
+
+
+
+
+
+
+
+
+
+'''
 async def fun0():
     print("fun0()  111")
     await asyncio.sleep(1)
@@ -56,12 +72,7 @@ pending = asyncio.Task.all_tasks()
 loop = asyncio.get_event_loop()
 loop.run_until_complete(asyncio.gather(*pending))
 loop.close()
-
-
-
-
-
-
+'''
 
 
 

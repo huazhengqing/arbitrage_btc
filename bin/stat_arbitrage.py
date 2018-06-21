@@ -19,7 +19,7 @@ import util.stat_arbitrage
 #logger = util.util.get_log(__name__)
 
 
-symbols = ["ETH/BTC"]
+symbols = ["XLM/ETH"]
 ids = ['okex', 'binance']
 db_base = util.db_base.db_base()
 db_base.init_sqlite3(conf.conf.dir_db, 'db_ticker')

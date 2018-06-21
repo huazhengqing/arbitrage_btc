@@ -25,7 +25,7 @@ import util.exchange_data
 ids = ['binance', 'okex']
 symbols = util.exchange_data.get_common_symbols(ids)
 
-symbols = ['EOS/ETH']
+symbols = ['XLM/ETH']
 util.exchange_data.ticker_fetch_to_sqlite(ids, symbols)
 
 

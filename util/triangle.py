@@ -228,7 +228,7 @@ class triangle(exchange_base):
         logger.debug(self.to_string() + "pos_cycle({0}) start".format(base_quote_buy_amount))
         ret = await exchange_base.buy_cancel(self, self.base_quote, base_quote_buy_amount)
         logger.debug(self.to_string() + "pos_cycle({0}) buy_cancel() ret={1}".format(base_quote_buy_amount, ret))
-        if ret['filled'] <= 0:
+        if ret['filled'] is None or ret['filled'] <= 0:
             logger.debug(self.to_string() + "pos_cycle({0}) return ret['filled'] <= 0 ret={1}".format(base_quote_buy_amount, ret))
             return
         quote_to_be_hedged = ret['filled'] * ret['price']
@@ -252,7 +252,7 @@ class triangle(exchange_base):
         logger.debug(self.to_string() + "neg_cycle({0}) start".format(base_quote_sell_amount))
         ret = await exchange_base.sell_cancel(self, self.base_quote, base_quote_sell_amount)
         logger.debug(self.to_string() + "neg_cycle({0}) sell_cancel() ret={1}".format(base_quote_sell_amount, ret))
-        if ret['filled'] <= 0:
+        if ret['filled'] is None or ret['filled'] <= 0:
             logger.debug(self.to_string() + "neg_cycle({0}) return ret['filled'] <= 0 ret={1}".format(base_quote_sell_amount, ret))
             return
         quote_to_be_hedged = ret['filled'] * ret['price']

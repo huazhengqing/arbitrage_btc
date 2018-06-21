@@ -67,6 +67,10 @@ class stat_arbitrage():
         # 仓位 再平衡，开关
         self.rebalance_on = False
 
+    async def close(self):
+        await self.ex1.close()
+        await self.ex2.close()
+        
     def to_string(self):
         return "stat_arbitrage[{0}:{1},{2}]".format(self.symbol, self.ex1.ex.id, self.ex2.ex.id)
         
@@ -260,11 +264,11 @@ class stat_arbitrage():
 
             # 价格回归平均值，平衡仓位
             if self.rebalance_on:
-                c1 = abs(self.spread1List[-1] - self.spread1_mean) / self.spread1_stdev < self.spread1_close_condition_stdev_coe
-                c2 = abs(self.spread2List[-1] - self.spread2_mean) / self.spread2_stdev < self.spread2_close_condition_stdev_coe
-                if c1 or c2:
+                c1 = (self.spread1List[-1] - self.spread1_mean) 
+                c2 = (self.spread2List[-1] - self.spread2_mean) 
+                if c1 < self.spread1_stdev * self.spread1_close_condition_stdev_coe or c2 < self.spread2_stdev * self.spread2_close_condition_stdev_coe:
                     logger.debug(self.to_string() + "run_arbitrage() 平衡仓位 {0}, {1}".format(c1, c2))
-                    self.rebalance_position()
+                    await self.rebalance_position()
                     continue
 
             # 检查是否有机会
@@ -367,7 +371,7 @@ class stat_arbitrage():
     # 先执行第1个交易所的下单，等交易结果
     async def do_order_spread1(self, amount):
         ret = await self.ex1.sell_cancel(self.ex1.symbol, amount)
-        if ret['filled'] <= 0:    # 订单完全没有成交，等待下一次机会
+        if ret['filled'] is None or ret['filled'] <= 0:    # 订单完全没有成交，等待下一次机会
             return
         # 第1交易所已下单成功，第2交易所下单
         await self.ex2.buy_all(self.ex2.symbol, ret['filled'])
@@ -378,7 +382,7 @@ class stat_arbitrage():
 
     async def do_order_spread2(self, amount):
         ret = await self.ex2.sell_cancel(self.ex2.symbol, amount)
-        if ret['filled'] <= 0:    # 订单完全没有成交，等待下一次机会
+        if ret['filled'] is None or ret['filled'] <= 0:    # 订单完全没有成交，等待下一次机会
             return
         # 第2交易所已下单成功，第1交易所下单
         await self.ex1.buy_all(self.ex1.symbol, ret['filled'])
@@ -447,6 +451,7 @@ class stat_arbitrage():
             except:
                 logger.error(traceback.format_exc())
                 break
+        await self.close()
         logger.debug(self.to_string() + 'run() end')
 
 
@@ -474,6 +479,7 @@ def do_stat_arbitrage(symbols, ids, db_base):
                 for symbol in symbols:
                     logger.info("do_stat_arbitrage() stat_arbitrage({0}, {1}, {2})".format(symbol, ex_list[i].ex.id, ex_list[j].ex.id))
                     pair = stat_arbitrage(symbol, ex_list[i], ex_list[j], db_base)
+                    pair.rebalance_set(True, 0.5)
                     pair_list.append(pair)
 
     tasks = []

@@ -1,0 +1,65 @@
+'exceptions': 
+{
+    '-1000': ExchangeNotAvailable,  # {"code":-1000,"msg":"An unknown error occured while processing the request."}
+    '-1013': InvalidOrder,  # createOrder -> 'invalid quantity'/'invalid price'/MIN_NOTIONAL
+    '-1021': InvalidNonce,  # 'your time is ahead of server'
+    '-1100': InvalidOrder,  # createOrder(symbol, 1, asdf) -> 'Illegal characters found in parameter 'price'
+    '-2010': InsufficientFunds,  # createOrder -> 'Account has insufficient balance for requested action.'
+    '-2011': OrderNotFound,  # cancelOrder(1, 'BTC/USDT') -> 'UNKNOWN_ORDER'
+    '-2013': OrderNotFound,  # fetchOrder(1, 'BTC/USDT') -> 'Order does not exist'
+    '-2014': AuthenticationError,  # {"code":-2014, "msg": "API-key format invalid."}
+    '-2015': AuthenticationError,  # "Invalid API-key, IP, or permissions for action."
+}
+
+'exceptions': {
+    '1009': OrderNotFound,  # for spot markets, cancelling closed order
+    '1051': OrderNotFound,  # for spot markets, cancelling "just closed" order
+    '1019': OrderNotFound,  # order closed?
+    '20015': OrderNotFound,  # for future markets
+    '1013': InvalidOrder,  # no contract type(PR-1101)
+    '1027': InvalidOrder,  # createLimitBuyOrder(symbol, 0, 0): Incorrect parameter may exceeded limits
+    '1002': InsufficientFunds,  # "The transaction amount exceed the balance"
+    '1050': InvalidOrder,  # returned when trying to cancel an order that was filled or canceled previously
+    '10000': ExchangeError,  # createLimitBuyOrder(symbol, None, None)
+    '10005': AuthenticationError,  # bad apiKey
+    '10008': ExchangeError,  # Illegal URL parameter
+},
+errorCode = self.safe_string(response, 'error_code')
+message = self.safe_string({
+    '10000': 'Internal error',
+    '10001': 'The required parameters can not be empty',
+    '10002': 'verification failed',
+    '10003': 'Illegal parameters',
+    '10004': 'User requests are too frequent',
+    '10005': 'Key does not exist',
+    '10006': 'user does not exist',
+    '10007': 'Invalid signature',
+    '10008': 'This currency pair is not supported',
+    '10009': 'Limit orders can not be missing orders and the number of orders',
+    '10010': 'Order price or order quantity must be greater than 0',
+    '10011': 'Market orders can not be missing the amount of the order',
+    '10012': 'market sell orders can not be missing orders',
+    '10013': 'is less than the minimum trading position 0.001',
+    '10014': 'Account number is not enough',
+    '10015': 'The order type is wrong',
+    '10016': 'Account balance is not enough',
+    '10017': 'Abnormal server',
+    '10018': 'order inquiry can not be more than 50 less than one',
+    '10019': 'withdrawal orders can not be more than 3 less than one',
+    '10020': 'less than the minimum amount of the transaction limit of 0.001',
+}, errorCode, self.json(response))
+ErrorClass = self.safe_value({
+    '10002': AuthenticationError,
+    '10004': DDoSProtection,
+    '10005': AuthenticationError,
+    '10006': AuthenticationError,
+    '10007': AuthenticationError,
+    '10009': InvalidOrder,
+    '10010': InvalidOrder,
+    '10011': InvalidOrder,
+    '10012': InvalidOrder,
+    '10013': InvalidOrder,
+    '10014': InvalidOrder,
+    '10015': InvalidOrder,
+    '10016': InvalidOrder,
+}, errorCode, ExchangeError)

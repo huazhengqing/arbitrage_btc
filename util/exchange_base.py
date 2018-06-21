@@ -100,6 +100,10 @@ class exchange_base(object):
     def to_string(self):
         return "exchange_base[{0}] ".format(self.ex.id)
     
+    async def close(self):
+        if not self.ex is None:
+            await self.ex.close()
+
     def set_symbol(self, symbol):
         self.symbol_cur = symbol         # BTC/USD
         self.base_cur = symbol.split('/')[0]       # BTC
@@ -252,12 +256,13 @@ class exchange_base(object):
         #await self.fetch_order_book(symbol, 5)
         price = self.order_book[symbol]['asks'][0][0]
         amount = util.util.downRound(amount, self.ex.markets[symbol]['precision']['amount'])
-        ret = await self.ex.create_order(symbol, 'limit', 'buy', amount, price, {'leverage': 1})
+        ret = await self.ex.create_order(symbol, 'limit', 'buy', amount, price)
+        ret = await self.ex.fetch_order(ret['id'], symbol)
         logger.debug(self.to_string() + "buy_cancel({0}, {1}) ret={2}".format(symbol, amount, ret))
-        if ret['filled'] <= 0.0:
+        if ret['filled'] is None or ret['filled'] <= 0.0:
             logger.debug(self.to_string() + "buy_cancel({0}, {1}) ret['filled'] <= 0.0 ret={2}".format(symbol, amount, ret))
         # 订单没有成交全部，剩下的订单取消
-        if ret['remaining'] > 0:
+        if ret['remaining'] is None or ret['remaining'] > 0:
             logger.debug(self.to_string() + "buy_cancel({0}, {1}) ret['remaining']={2}".format(symbol, amount, ret['remaining']))
             c = 0
             while c < 5:
@@ -279,12 +284,13 @@ class exchange_base(object):
         #await self.fetch_order_book(symbol, 5)
         price = self.order_book[symbol]['bids'][0][0]
         amount = util.util.downRound(amount, self.ex.markets[symbol]['precision']['amount'])
-        ret = await self.ex.create_order(symbol, 'limit', 'sell', amount, price, {'leverage': 1})
+        ret = await self.ex.create_order(symbol, 'limit', 'sell', amount, price)
+        ret = await self.ex.fetch_order(ret['id'], symbol)
         logger.debug(self.to_string() + "sell_cancel({0}, {1}) ret={2}".format(symbol, amount, ret))
-        if ret['filled'] <= 0.0:
+        if ret['filled'] is None or ret['filled'] <= 0.0:
             logger.debug(self.to_string() + "sell_cancel({0}, {1}) ret['filled'] <= 0.0 ret={2}".format(symbol, amount, ret))
         # 订单没有成交全部，剩下的订单取消
-        if ret['remaining'] > 0:
+        if ret['remaining'] is None or ret['remaining'] > 0:
             logger.debug(self.to_string() + "sell_cancel({0}, {1}) ret['remaining']={2}".format(symbol, amount, ret['remaining']))
             c = 0
             while c < 5:
@@ -302,29 +308,32 @@ class exchange_base(object):
     async def buy_all(self, symbol, amount):
         logger.debug(self.to_string() + "buy_all({0}, {1}) start".format(symbol, amount))
         if amount < self.ex.markets[symbol]['limits']['amount']['min']:
-            logger.debug(self.to_string() + "buy_all({0}, {1}) return ".format(symbol, amount))
+            logger.debug(self.to_string() + "buy_all({0}, {1}) return amount.min={2}".format(symbol, amount, self.ex.markets[symbol]['limits']['amount']['min']))
             return
         #await self.fetch_order_book(symbol, 5)
         price = self.order_book[symbol]['asks'][0][0]
         amount = util.util.downRound(amount, self.ex.markets[symbol]['precision']['amount'])
+        logger.debug(self.to_string() + "buy_all({0}, {1}) price={2}".format(symbol, amount, price))
         ret = None
         c = 0
         while c < 5:
             try:
                 c = c + 1
-                ret = await self.ex.create_order(symbol, 'limit', 'buy', amount, price, {'leverage': 1})
+                ret = await self.ex.create_order(symbol, 'limit', 'buy', amount, price)
+                ret = await self.ex.fetch_order(ret['id'], symbol)
                 logger.debug(self.to_string() + "buy_all({0}, {1}) create_order() ret={2} c={3}".format(symbol, amount, ret, c))
                 break
             except:
                 logger.error(traceback.format_exc())
         c = 0
-        while ret['remaining'] >= self.ex.markets[symbol]['limits']['amount']['min']:
+        while ret['remaining'] is not None and ret['remaining'] >= self.ex.markets[symbol]['limits']['amount']['min']:
             try:
                 price = self.order_book[symbol]['asks'][4][0]
                 logger.debug(self.to_string() + "buy_all({0}, {1}) remaining price={2} c={3}".format(symbol, amount, price, c))
-                ret = await self.ex.create_order(symbol, 'limit', 'buy', ret['remaining'], price, {'leverage': 1})
+                ret = await self.ex.create_order(symbol, 'limit', 'buy', ret['remaining'], price)
+                ret = await self.ex.fetch_order(ret['id'], symbol)
                 logger.debug(self.to_string() + "buy_all({0}, {1}) remaining ret={2} c={3}".format(symbol, amount, ret, c))
-                if ret['remaining'] >= self.ex.markets[symbol]['limits']['amount']['min']:
+                if ret['remaining'] is not None and ret['remaining'] >= self.ex.markets[symbol]['limits']['amount']['min']:
                     await self.fetch_order_book(symbol, 5)
             except:
                 logger.error(traceback.format_exc())
@@ -336,7 +345,7 @@ class exchange_base(object):
     async def sell_all(self, symbol, amount):
         logger.debug(self.to_string() + "sell_all({0}, {1}) start".format(symbol, amount))
         if amount < self.ex.markets[symbol]['limits']['amount']['min']:
-            logger.debug(self.to_string() + "sell_all({0}, {1}) return ".format(symbol, amount))
+            logger.debug(self.to_string() + "sell_all({0}, {1}) return amount.min={2}".format(symbol, amount, self.ex.markets[symbol]['limits']['amount']['min']))
             return
         #await self.fetch_order_book(symbol, 5)
         price = self.order_book[symbol]['bids'][0][0]
@@ -346,19 +355,21 @@ class exchange_base(object):
         while c < 5:
             try:
                 c = c + 1
-                ret = await self.ex.create_order(symbol, 'limit', 'sell', amount, price, {'leverage': 1})
+                ret = await self.ex.create_order(symbol, 'limit', 'sell', amount, price)
+                ret = await self.ex.fetch_order(ret['id'], symbol)
                 logger.debug(self.to_string() + "sell_all({0}, {1}) ret={2} c={3}".format(symbol, amount, ret, c))
                 break
             except:
                 logger.error(traceback.format_exc())
         c = 0
-        while ret['remaining'] >= self.ex.markets[symbol]['limits']['amount']['min']:
+        while ret['remaining'] is not None and ret['remaining'] >= self.ex.markets[symbol]['limits']['amount']['min']:
             try:
                 price = self.order_book[symbol]['bids'][4][0]
                 logger.debug(self.to_string() + "sell_all({0}, {1}) remaining price={2} c={3}".format(symbol, amount, price, c))
-                ret = await self.ex.create_order(symbol, 'limit', 'sell', ret['remaining'], price, {'leverage': 1})
+                ret = await self.ex.create_order(symbol, 'limit', 'sell', ret['remaining'], price)
+                ret = await self.ex.fetch_order(ret['id'], symbol)
                 logger.debug(self.to_string() + "sell_all({0}, {1}) remaining ret={2} c={3}".format(symbol, amount, ret, c))
-                if ret['remaining'] >= self.ex.markets[symbol]['limits']['amount']['min']:
+                if ret['remaining'] is not None and ret['remaining'] >= self.ex.markets[symbol]['limits']['amount']['min']:
                     await self.fetch_order_book(symbol, 5)
             except:
                 logger.error(traceback.format_exc())
@@ -369,13 +380,15 @@ class exchange_base(object):
 
     # 仓位再平衡
     async def rebalance_position(self, symbol):
-        logger.debug(self.to_string() + "rebalance_position({0}) start".format(symbol))
+        #logger.debug(self.to_string() + "rebalance_position({0}) start".format(symbol))
         if self.rebalance_position_proportion <= 0.0:
             #logger.debug(self.to_string() + "rebalance_position({0}) return rebalance_position_proportion <= 0.0".format(symbol))
             return
         if int(time.time()) < self.rebalance_time + 60:
             #logger.debug(self.to_string() + "rebalance_position({0}) return  time  ".format(symbol))
             return
+        self.rebalance_time = int(time.time())
+        logger.debug(self.to_string() + "rebalance_position({0}) start".format(symbol))
         await self.load_markets()
         await self.fetch_balance()
         await self.fetch_ticker(symbol)
@@ -383,10 +396,11 @@ class exchange_base(object):
         pos_value = self.balance[self.base_cur]['free'] * self.ticker['bid']
         total_value = self.balance[self.quote_cur]['free'] + pos_value
         target_pos_value = total_value * self.rebalance_position_proportion
-        if pos_value < target_pos_value * 0.97:
-            logger.debug(self.to_string() + "rebalance_position({0}) buy_all({1}) ".format(symbol, target_pos_value - pos_value))
-            await self.buy_all(symbol, target_pos_value - pos_value)
-        elif pos_value > target_pos_value * 1.03:
+        if pos_value < target_pos_value * 0.8:
+            buy_amount = (target_pos_value - pos_value) / self.ticker['bid']
+            logger.debug(self.to_string() + "rebalance_position({0}) buy_all({1}) ".format(symbol, buy_amount))
+            await self.buy_all(symbol, buy_amount)
+        elif pos_value > target_pos_value * 1.2:
             sell_amount = (pos_value - target_pos_value) / self.ticker['bid']
             logger.debug(self.to_string() + "rebalance_position({0}) sell_all({1}) ".format(symbol, sell_amount))
             await self.sell_all(symbol, sell_amount)
